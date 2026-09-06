@@ -1,0 +1,1347 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GTA 科茲中心任務分配系統</title>
+  <style>
+    :root {
+      --bg-main: #0f141c;
+      --bg-card: #18202c;
+      --bg-card-hover: #202b3b;
+      --border-color: #2a374a;
+      --text-main: #e2e8f0;
+      --text-muted: #94a3b8;
+      --accent-cyan: #00d2ff;
+      --accent-green: #10b981;
+      --accent-yellow: #f59e0b;
+      --accent-red: #ef4444;
+      --accent-purple: #8b5cf6;
+      --gold: #fbbf24;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", "PingFang TC", "Microsoft JhengHei", sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      padding: 12px;
+      line-height: 1.5;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    /* 頂部導覽列 */
+    header {
+      background: linear-gradient(135deg, #1e293b, #0f172a);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-bottom: 16px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+    }
+
+    .title-area h1 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .title-area span {
+      font-size: 0.8rem;
+      background: rgba(0, 210, 255, 0.15);
+      color: var(--accent-cyan);
+      border: 1px solid var(--accent-cyan);
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    .nav-buttons {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      background: #243144;
+      color: #fff;
+      border: 1px solid var(--border-color);
+      padding: 8px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn:hover {
+      background: #33445c;
+      border-color: var(--accent-cyan);
+    }
+
+    .btn-primary {
+      background: #0284c7;
+      border-color: #38bdf8;
+    }
+    .btn-primary:hover {
+      background: #0369a1;
+    }
+
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.2);
+      border-color: var(--accent-red);
+      color: #fca5a5;
+    }
+    .btn-danger:hover {
+      background: rgba(239, 68, 68, 0.4);
+    }
+
+    /* 玩家與容量區塊 */
+    .players-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .player-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 12px 16px;
+      position: relative;
+      transition: border-color 0.2s ease;
+    }
+
+    .player-card.warning {
+      border-color: var(--accent-yellow);
+    }
+
+    .player-card.danger {
+      border-color: var(--accent-red);
+      background: rgba(239, 68, 68, 0.05);
+    }
+
+    .player-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .player-name-input {
+      background: transparent;
+      border: 1px dashed transparent;
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 600;
+      width: 60%;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .player-name-input:focus {
+      background: #0d131a;
+      border-color: var(--accent-cyan);
+      outline: none;
+    }
+
+    .slot-badge {
+      font-size: 0.85rem;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 20px;
+      background: #243144;
+    }
+
+    .slot-badge.full {
+      background: rgba(245, 158, 11, 0.2);
+      color: var(--gold);
+      border: 1px solid var(--gold);
+    }
+
+    .slot-badge.over {
+      background: rgba(239, 68, 68, 0.2);
+      color: var(--accent-red);
+      border: 1px solid var(--accent-red);
+    }
+
+    .progress-bar-bg {
+      height: 8px;
+      background: #222d3d;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 8px;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      background: var(--accent-cyan);
+      width: 0%;
+      transition: width 0.3s ease, background-color 0.3s ease;
+    }
+
+    .player-stats {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .player-stats strong {
+      color: #38bdf8;
+    }
+
+    /* 隊伍總覽資訊 */
+    .team-summary-bar {
+      background: #141c27;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 10px 16px;
+      margin-bottom: 16px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-around;
+      gap: 12px;
+      font-size: 0.85rem;
+    }
+
+    .summary-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .summary-item .val {
+      font-weight: 700;
+      color: #fff;
+    }
+
+    /* 模式切換分頁 */
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 8px;
+    }
+
+    .tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      font-weight: 600;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .tab-btn:hover {
+      background: #1e293b;
+    }
+
+    .tab-btn.active {
+      background: #223042;
+      color: var(--accent-cyan);
+    }
+
+    /* 物品清單控制列 */
+    .filter-bar {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-bottom: 12px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .filter-group {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    select, input[type="text"] {
+      background: #121822;
+      border: 1px solid var(--border-color);
+      color: #fff;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+    }
+
+    select:focus, input[type="text"]:focus {
+      border-color: var(--accent-cyan);
+      outline: none;
+    }
+
+    /* 物品表格 */
+    .table-responsive {
+      overflow-x: auto;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.85rem;
+    }
+
+    th {
+      background: #1e2838;
+      color: var(--text-muted);
+      padding: 10px 12px;
+      font-weight: 600;
+      border-bottom: 1px solid var(--border-color);
+      white-space: nowrap;
+    }
+    
+    .sortable-th {
+      cursor: pointer;
+      user-select: none;
+      transition: background-color 0.2s;
+    }
+
+    .sortable-th:hover {
+      background-color: #2a374a;
+      color: #fff;
+    }
+
+    .sort-icon {
+      font-size: 0.75rem;
+      margin-left: 4px;
+      color: var(--accent-cyan);
+      display: inline-block;
+      width: 12px;
+    }
+
+    td {
+      padding: 8px 12px;
+      border-bottom: 1px solid #1f2a3a;
+      vertical-align: middle;
+    }
+
+    tr:hover {
+      background: var(--bg-card-hover);
+    }
+
+    tr.is-target {
+      background: rgba(245, 158, 11, 0.08);
+      border-left: 3px solid var(--accent-yellow);
+    }
+
+    tr.is-assigned {
+      background: rgba(16, 185, 129, 0.08);
+      border-left: 3px solid transparent;
+    }
+    
+    tr.is-assigned.is-target {
+      border-left: 3px solid var(--accent-yellow);
+    }
+
+    .badge-slots {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-weight: 700;
+      font-size: 0.75rem;
+      background: #2a374a;
+      color: #cbd5e1;
+    }
+
+    .badge-location {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      background: #1a2533;
+      color: #94a3b8;
+      border: 1px solid #2d3e54;
+    }
+
+    .unit-price-cell {
+      font-weight: 700;
+      color: #38bdf8;
+    }
+
+    .unit-price-cell.top-tier {
+      color: #4ade80;
+    }
+
+    .price-input {
+      width: 95px;
+      background: #111720;
+      border: 1px solid #2d3e54;
+      color: #fff;
+      padding: 5px 8px;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      text-align: right;
+      -moz-appearance: textfield;
+    }
+
+    .price-input::-webkit-outer-spin-button,
+    .price-input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    .price-input:focus {
+      border-color: var(--accent-cyan);
+      outline: none;
+    }
+
+    .assign-select {
+      background: #111720;
+      border: 1px solid #2d3e54;
+      color: #fff;
+      padding: 5px 8px;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+
+    .assign-select.assigned {
+      border-color: var(--accent-green);
+      background: #0d291e;
+      color: #86efac;
+    }
+
+    /* 路線執行清單檢視 (Route View) & 拖曳排序樣式 */
+    .route-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+    }
+
+    .route-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 16px;
+    }
+
+    .route-card h3 {
+      font-size: 1rem;
+      color: var(--accent-cyan);
+      margin-bottom: 12px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .route-item {
+      padding: 8px 10px;
+      background: #131b26;
+      border-radius: 6px;
+      margin-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.85rem;
+      transition: opacity 0.2s, box-shadow 0.2s;
+    }
+    
+    .route-item.dragging {
+      opacity: 0.4;
+      box-shadow: 0 4px 12px rgba(0, 210, 255, 0.2);
+      border: 1px dashed var(--accent-cyan);
+    }
+
+    .drag-handle {
+      cursor: grab;
+      color: var(--text-muted);
+      font-size: 1.3rem;
+      padding-right: 10px;
+      user-select: none;
+      display: flex;
+      align-items: center;
+    }
+
+    .drag-handle:active {
+      cursor: grabbing;
+    }
+
+    .route-item .item-loc {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .empty-placeholder {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    .custom-checkbox {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+      accent-color: var(--accent-yellow);
+    }
+
+    /* 主要目標保留清單專屬樣式 */
+    .main-target-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 12px;
+    }
+
+    .main-target-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .main-target-item:hover {
+      background: var(--bg-card-hover);
+      border-color: #4b5563;
+    }
+
+    .main-target-item.checked {
+      border-color: var(--accent-green);
+      background: rgba(16, 185, 129, 0.08);
+    }
+
+    .main-target-item input[type="checkbox"] {
+      pointer-events: none;
+      margin-top: 2px;
+    }
+
+    .special-black-bg {
+      background-color: #000; 
+      padding: 4px 8px; 
+      border-radius: 6px; 
+      border: 1px solid #333;
+    }
+
+    @media (max-width: 768px) {
+      body {
+        padding: 8px;
+      }
+      header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .nav-buttons {
+        width: 100%;
+        justify-content: flex-start;
+      }
+      .players-container {
+        grid-template-columns: 1fr;
+      }
+      .team-summary-bar {
+        justify-content: flex-start;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <div class="title-area">
+      <h1>GTA 科茲中心任務分配工具 <span>v1.11</span></h1>
+    </div>
+    <div class="nav-buttons">
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <span style="font-size: 0.85rem; color: var(--text-muted);">隊伍人數:</span>
+        <select id="playerCountSelect" onchange="changePlayerCount(this.value)">
+          <option value="1">1 人</option>
+          <option value="2" selected>2 人 (常用)</option>
+          <option value="3">3 人</option>
+          <option value="4">4 人</option>
+        </select>
+      </div>
+      <button class="btn" onclick="autoAssignOptimal()">⚡ 依 CP 值最佳化自動分配</button>
+      <button class="btn btn-danger" onclick="resetMission()">🔄 重設本次任務</button>
+    </div>
+  </header>
+
+  <div class="players-container" id="playersContainer"></div>
+
+  <div class="team-summary-bar">
+    <div class="summary-item">
+      <span>🎒 隊伍剩餘容量:</span>
+      <span class="val" id="teamSlotsRemaining">20 / 20 格</span>
+    </div>
+    <div class="summary-item">
+      <span>📦 偵查可用物品:</span>
+      <span class="val" id="availableItemsCount">0 項</span>
+    </div>
+    <div class="summary-item">
+      <span>🎯 指定物品總數:</span>
+      <span class="val" id="totalTargetsCount">0 項</span>
+    </div>
+    <div class="summary-item">
+      <span>⚠️ 漏拿指定物品:</span>
+      <span class="val" id="unassignedCount" style="color: var(--accent-green);">0 項</span>
+    </div>
+    <div class="summary-item">
+      <span>💰 拿取總預估價值:</span>
+      <span class="val" id="totalLootValue" style="color: var(--gold);">$0</span>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" id="tabScoutBtn" onclick="switchTab('scout')">📋 偵查與人員分配</button>
+    <button class="tab-btn" id="tabRouteBtn" onclick="switchTab('route')">🗺️ 樓層路線執行表</button>
+    <button class="tab-btn" id="tabMainTargetsBtn" onclick="switchTab('mainTargets')">🖼️ 主要目標保留清單</button>
+  </div>
+
+  <!-- 分頁一：偵查與人員分配表 -->
+  <div id="scoutView">
+    <div class="filter-bar">
+      <div class="filter-group">
+        <label style="font-size:0.85rem; color: var(--text-muted);">篩選區域:</label>
+        <select id="filterLocation" onchange="updateUI()">
+          <option value="all">全部區域</option>
+          <option value="畫廊">畫廊</option>
+          <option value="1F">1F</option>
+          <option value="2F">2F</option>
+          <option value="金庫">金庫</option>
+          <option value="LG">LG</option>
+          <option value="卸貨區">卸貨區</option>
+        </select>
+
+        <label style="font-size:0.85rem; color: var(--text-muted); margin-left: 8px;">顯示:</label>
+        <select id="filterTargetOnly" onchange="updateUI()">
+          <option value="all">所有項目</option>
+          <option value="available">僅顯示已偵查 (有金額)</option>
+          <option value="target">僅顯示指定物品 (有勾選)</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <span style="font-size: 0.8rem; color: var(--text-muted);">💡 輸入金額 = 現場有偵查到；若該物品為強制取得任務目標，請手動勾選最左側的「指定」。</span>
+      </div>
+    </div>
+
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th class="sortable-th" style="width: 60px; text-align: center;" onclick="handleSort('target')">指定 <span class="sort-icon" id="sort-icon-target"></span></th>
+            <th class="sortable-th" onclick="handleSort('name')">物品名稱 <span class="sort-icon" id="sort-icon-name"></span></th>
+            <th class="sortable-th" onclick="handleSort('category')">分類 <span class="sort-icon" id="sort-icon-category"></span></th>
+            <th class="sortable-th" onclick="handleSort('location')">所在區域 <span class="sort-icon" id="sort-icon-location"></span></th>
+            <th class="sortable-th" style="text-align: center;" onclick="handleSort('slots')">格數 <span class="sort-icon" id="sort-icon-slots"></span></th>
+            <th class="sortable-th" style="text-align: right;" onclick="handleSort('price')">本次價格 ($) <span class="sort-icon" id="sort-icon-price"></span></th>
+            <th class="sortable-th" style="text-align: right;" onclick="handleSort('cp')">單位價格 ($/格) <span class="sort-icon" id="sort-icon-cp"></span></th>
+            <th style="width: 140px;">負責人員</th>
+          </tr>
+        </thead>
+        <tbody id="itemsTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 分頁二：樓層路線執行檢視 -->
+  <div id="routeView" style="display: none;">
+    <div class="filter-bar" style="margin-bottom: 12px; justify-content: flex-end;">
+      <span style="font-size: 0.8rem; color: var(--text-muted);">💡 提示：按住物品左側的「≡」圖示可上下拖曳，自由安排跑圖與拿取順序。</span>
+    </div>
+    <div class="route-grid" id="routeGridContainer"></div>
+  </div>
+
+  <!-- 分頁三：主要目標保留清單 -->
+  <div id="mainTargetsView" style="display: none;">
+    <div class="filter-bar" style="margin-bottom: 16px;">
+      <span style="font-size: 0.85rem; color: var(--text-muted);">💡 點擊卡片勾選目前已保留的主要目標。 已勾選統計：<strong id="mainTargetCount" style="color:var(--accent-cyan); font-size: 1rem;">0</strong> / 27</span>
+    </div>
+    <div class="main-target-grid" id="mainTargetGridContainer">
+      <!-- JS 動態產生主要目標清單 -->
+    </div>
+  </div>
+
+</div>
+
+<script>
+// 顏色定義
+const C_BLUE = '#60a5fa';   
+const C_GOLD = '#fbbf24';   
+const C_RED = '#f87171';    
+const C_PURPLE = '#c084fc'; 
+const C_GREEN = '#4ade80';  
+const C_DEFAULT = '#e2e8f0'; 
+
+// 偵查物品資料清單
+const DEFAULT_ITEMS = [
+  { id: 'p1', name: '上行下效', category: '畫作', location: '畫廊', slots: 5, color: C_BLUE },
+  { id: 'p2', name: '依線行事', category: '畫作', location: '畫廊', slots: 5, color: C_BLUE },
+  { id: 'p3', name: '金色狗狗', category: '畫作', location: '金庫', slots: 5, color: C_GOLD },
+  { id: 'p4', name: '淫蕩鞦韆六九號', category: '畫作', location: '金庫', slots: 5, color: C_GOLD },
+  { id: 'p5', name: '這種朋友', category: '畫作', location: '金庫', slots: 5, color: C_GOLD },
+  { id: 'p6', name: '螳螂捕蟬', category: '畫作', location: '金庫', slots: 5, color: C_GOLD },
+  { id: 'p7', name: '完蛋了', category: '畫作', location: '2F', slots: 5, color: C_DEFAULT },
+  { id: 'p8', name: '滾', category: '畫作', location: '2F', slots: 5, color: C_DEFAULT },
+  { id: 'p9', name: '女公爵', category: '畫作', location: '1F', slots: 5, color: C_DEFAULT },
+  { id: 'p10', name: '長官', category: '畫作', location: '1F', slots: 5, color: C_DEFAULT },
+  { id: 'p11', name: '長官價值', category: '畫作', location: '1F', slots: 5, color: C_DEFAULT },
+  { id: 'p12', name: '看到我嗎', category: '畫作', location: '1F', slots: 5, color: C_DEFAULT },
+  { id: 'p13', name: '惡霸狂犬', category: '畫作', location: '1F', slots: 5, color: C_DEFAULT },
+  { id: 'p14', name: '解釋一下', category: '畫作', location: '1F', slots: 5, color: C_DEFAULT },
+  { id: 'p15', name: '熟透的夏天', category: '畫作', location: '1F', slots: 5, color: C_DEFAULT },
+  { id: 'c1', name: '寶石類', category: '直立櫃', location: '畫廊', slots: 3, color: C_BLUE },
+  { id: 'c2', name: '阿爾吉儂的維納斯', category: '直立櫃', location: '畫廊', slots: 3, color: C_BLUE },
+  { id: 'c3', name: '銘記永生', category: '直立櫃', location: 'LG', slots: 3, color: C_DEFAULT },
+  { id: 'c4', name: '馬匹像', category: '直立櫃', location: '2F', slots: 3, color: C_DEFAULT },
+  { id: 'c5', name: '科卡爾寶石項圈', category: '直立櫃', location: '2F', slots: 3, color: C_DEFAULT },
+  { id: 't1', name: '運輸貨車', category: '載具', location: '卸貨區', slots: 3, color: C_RED },
+  { id: 'fg1', name: '生育女神像 (畫廊)', category: '展示櫃', location: '畫廊', slots: 2, color: C_PURPLE },
+  { id: 'fg2', name: '生育女神像 (1F)', category: '展示櫃', location: '1F', slots: 2, color: C_PURPLE },
+  { id: 'ee1', name: '彩蛋類 (LG)', category: '展示櫃', location: 'LG', slots: 2, color: C_GREEN },
+  { id: 'ee2', name: '彩蛋類 (2F)', category: '展示櫃', location: '2F', slots: 2, color: C_GREEN },
+  { id: 'm1', name: '隕石碎片', category: '展示櫃', location: '畫廊', slots: 2, color: C_BLUE },
+  { id: 'j1', name: '裝飾藝術風格頭環', category: '展示櫃', location: '畫廊', slots: 1, color: C_BLUE },
+  { id: 'j2', name: '古董手鐲', category: '展示櫃', location: '1F', slots: 1, color: C_DEFAULT },
+  { id: 'j3', name: '古董戒指', category: '展示櫃', location: '1F', slots: 1, color: C_DEFAULT },
+  { id: 'j4', name: '法老手鐲', category: '展示櫃', location: '1F', slots: 1, color: C_DEFAULT },
+  { id: 'j5', name: '科卡爾戒指', category: '展示櫃', location: '1F', slots: 1, color: C_DEFAULT },
+  { id: 'j6', name: '裝飾藝術風格戒指', category: '展示櫃', location: '1F', slots: 1, color: C_DEFAULT },
+  { id: 'j7', name: '拜占庭圓耳環', category: '展示櫃', location: 'LG', slots: 1, color: C_DEFAULT },
+  { id: 'j8', name: '科卡爾手鐲', category: '展示櫃', location: '2F', slots: 1, color: C_DEFAULT }
+];
+
+// 主要目標保留清單 (支援中文/英文雙行顯示)
+const DEFAULT_MAIN_TARGETS = [
+  { id: 'mt1', nameZh: '免個清淨', nameEn: 'Hare Oneself Think', color: C_DEFAULT, bg: 'transparent' },
+  { id: 'mt2', nameZh: '羅馬的衰亡', nameEn: 'The Downfall of Rome', color: C_DEFAULT, bg: 'transparent' },
+  { id: 'mt3', nameZh: '兄弟', nameEn: 'Brother Brother', color: C_DEFAULT, bg: 'transparent' },
+  { id: 'mt4', nameZh: '模刻眾生', nameEn: 'A Cast of Characters', color: C_DEFAULT, bg: 'transparent' },
+  { id: 'mt5', nameZh: '落紅非暮', nameEn: 'Gone To Seed', color: C_DEFAULT, bg: 'transparent' },
+  { id: 'mt6', nameZh: '真愛', nameEn: 'True Love', color: C_DEFAULT, bg: 'transparent' },
+  { id: 'mt7', nameZh: '受不了', nameEn: 'Breathless', color: C_DEFAULT, bg: 'transparent' },
+  { id: 'mt8', nameZh: '蠟炬成灰', nameEn: 'Consumato', color: C_DEFAULT, bg: 'transparent' },
+  { id: 'mt9', nameZh: '什麼聲音', nameEn: 'I Hear Voices', color: C_DEFAULT, bg: 'transparent' },
+  { id: 'mt10', nameZh: '冬行無跡', nameEn: 'Winter, Nowhere in Particular', color: C_DEFAULT, bg: 'transparent' },
+  { id: 'mt11', nameZh: '戴珍珠項鍊的女孩', nameEn: 'The Girl With the Pearl Necklace', color: C_DEFAULT, bg: 'transparent' },
+  { id: 'mt12', nameZh: '果真好聊', nameEn: 'Chat on Fruit', color: C_DEFAULT, bg: 'transparent' },
+  { id: 'mt13', nameZh: '南瓜', nameEn: 'Pumpkin', color: C_DEFAULT, bg: 'transparent' },
+  { id: 'mt14', nameZh: '孿生不孿生', nameEn: 'Twindifference', color: C_DEFAULT, bg: 'transparent' },
+  { id: 'mt15', nameZh: '浮世沙丘V', nameEn: 'Stacks Study V', color: C_DEFAULT, bg: 'transparent' },
+  { id: 'mt16', nameZh: '哀 水果', nameEn: 'I, Fruit', color: C_DEFAULT, bg: 'transparent' },
+  { id: 'mt17', nameZh: '樹叢裡玩耍', nameEn: 'To Beat About the Bush', color: C_DEFAULT, bg: 'transparent' },
+  { id: 'mt18', nameZh: '燈紅酒綠', nameEn: 'In Excess of Success', color: C_DEFAULT, bg: 'transparent' },
+  { id: 'mt19', nameZh: '榨乾', nameEn: 'Juiced', color: C_DEFAULT, bg: 'transparent' },
+  { id: 'mt20', nameZh: '蜿蜒歸鄉路', nameEn: 'A Winding Road Home', color: C_DEFAULT, bg: 'transparent' },
+  { id: 'mt21', nameZh: '臘腸 狗', nameEn: 'Teckels', color: C_DEFAULT, bg: 'transparent' },
+  { id: 'mt22', nameZh: '信任', nameEn: 'Trust', color: C_DEFAULT, bg: 'transparent' },
+  { id: 'mt23', nameZh: '至死不渝', nameEn: 'Until Death', color: C_DEFAULT, bg: 'transparent' },
+  { id: 'mt24', nameZh: '頂瓜瓜', nameEn: 'What Are Melons', color: C_DEFAULT, bg: 'transparent' },
+  { id: 'mt25', nameZh: '努力的成果', nameEn: 'The Outcome of Endeavour', color: C_DEFAULT, bg: 'transparent' },
+  { id: 'mt26', nameZh: '哇幹 剁人啦', nameEn: 'Mi O Melee', color: C_DEFAULT, bg: 'transparent' },
+  { id: 'mt27', nameZh: '最後的放縱', nameEn: 'La Dernière Débauche', color: C_RED, bg: 'black' }
+];
+
+// 升級至 v11 以套用最新的雙行文字結構
+const STORAGE_KEY = 'gta_kortz_mission_state_v11';
+
+let state = {
+  playerCount: 2,
+  playerNames: ['nilfantasy', 'k665025', '玩家 3', '玩家 4'],
+  items: [],
+  mainTargets: []
+};
+
+let currentSortKey = 'default';
+let currentSortAsc = true;
+
+function initState() {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) {
+    try {
+      state = JSON.parse(saved);
+      if (!state.playerNames || state.playerNames.length < 4) {
+        state.playerNames = ['nilfantasy', 'k665025', '玩家 3', '玩家 4'];
+      }
+      state.items = state.items.map((item, index) => ({
+         ...item,
+         originalIndex: item.originalIndex !== undefined ? item.originalIndex : index,
+         routeOrder: item.routeOrder || 0
+      }));
+      if (!state.mainTargets || state.mainTargets.length === 0 || !state.mainTargets[0].nameZh) {
+        state.mainTargets = DEFAULT_MAIN_TARGETS.map(mt => ({ ...mt, checked: false }));
+      }
+    } catch(e) {
+      resetToDefault();
+    }
+  } else {
+    resetToDefault();
+  }
+}
+
+function resetToDefault() {
+  state.playerCount = 2;
+  state.playerNames = ['nilfantasy', 'k665025', '玩家 3', '玩家 4'];
+  state.items = DEFAULT_ITEMS.map((item, index) => ({
+    ...item,
+    isTarget: false,
+    price: '',
+    assignedTo: null,
+    originalIndex: index,
+    routeOrder: 0
+  }));
+  state.mainTargets = DEFAULT_MAIN_TARGETS.map(mt => ({ ...mt, checked: false }));
+  currentSortKey = 'default';
+  saveState();
+}
+
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function changePlayerCount(count) {
+  state.playerCount = parseInt(count, 10);
+  state.items.forEach(item => {
+    if (item.assignedTo !== null && item.assignedTo >= state.playerCount) {
+      item.assignedTo = null;
+    }
+  });
+  saveState();
+  updateUI();
+}
+
+function updatePlayerName(index, name) {
+  state.playerNames[index] = name.trim() || `玩家 ${index + 1}`;
+  saveState();
+  updateUI();
+}
+
+function toggleTarget(itemId, isChecked) {
+  const item = state.items.find(i => i.id === itemId);
+  if (item) {
+    item.isTarget = isChecked;
+    saveState();
+    updateUI();
+  }
+}
+
+function updatePrice(itemId, val) {
+  const item = state.items.find(i => i.id === itemId);
+  if (item) {
+    const numVal = val === '' ? '' : Math.max(0, parseInt(val, 10) || 0);
+    item.price = numVal;
+    
+    if (numVal === '' || numVal === 0) {
+      item.isTarget = false;
+      item.assignedTo = null;
+    }
+    
+    saveState();
+    updateUI();
+  }
+}
+
+function assignItem(itemId, playerIndex) {
+  const item = state.items.find(i => i.id === itemId);
+  if (!item) return;
+
+  if (playerIndex === '' || playerIndex === null) {
+    item.assignedTo = null;
+    item.routeOrder = 0;
+  } else {
+    const pIdx = parseInt(playerIndex, 10);
+    const currentSlots = calculatePlayerSlots(pIdx);
+    if (currentSlots + item.slots > 10) {
+      const pName = state.playerNames[pIdx];
+      alert(`⚠️ 【${pName}】背包空間不足！\n目前已使用：${currentSlots}/10 格\n此物品需佔用：${item.slots} 格，放入後將達到 ${currentSlots + item.slots} 格 (上限 10 格)。`);
+    }
+    item.assignedTo = pIdx;
+    item.routeOrder = 0; 
+  }
+  saveState();
+  updateUI();
+}
+
+function calculatePlayerSlots(playerIdx) {
+  return state.items
+    .filter(item => item.assignedTo === playerIdx)
+    .reduce((sum, item) => sum + item.slots, 0);
+}
+
+function calculatePlayerValue(playerIdx) {
+  return state.items
+    .filter(item => item.assignedTo === playerIdx)
+    .reduce((sum, item) => sum + (parseInt(item.price, 10) || 0), 0);
+}
+
+function autoAssignOptimal() {
+  const activeItems = state.items.filter(i => (parseInt(i.price, 10) || 0) > 0);
+  
+  if (activeItems.length === 0) {
+    alert('請先輸入偵查到的物品金額，系統才能進行自動分配！');
+    return;
+  }
+
+  state.items.forEach(i => {
+    i.assignedTo = null;
+    i.routeOrder = 0; 
+  });
+
+  const sorted = [...activeItems].sort((a, b) => {
+    if (a.isTarget && !b.isTarget) return -1;
+    if (!a.isTarget && b.isTarget) return 1;
+
+    const prA = parseInt(a.price, 10) || 0;
+    const prB = parseInt(b.price, 10) || 0;
+    const cpA = a.slots > 0 ? (prA / a.slots) : 0;
+    const cpB = b.slots > 0 ? (prB / b.slots) : 0;
+    return cpB - cpA;
+  });
+
+  const playerBags = Array.from({ length: state.playerCount }, () => 0);
+
+  sorted.forEach(item => {
+    for (let p = 0; p < state.playerCount; p++) {
+      if (playerBags[p] + item.slots <= 10) {
+        item.assignedTo = p;
+        playerBags[p] += item.slots;
+        break;
+      }
+    }
+  });
+
+  saveState();
+  updateUI();
+}
+
+function resetMission() {
+  if (confirm('確定要清空本次任務的所有偵查與分配資料嗎？\n\n注意：這不會影響「主要目標保留清單」與你的「隊友名稱」。')) {
+    state.items.forEach(item => {
+      item.isTarget = false;
+      item.price = '';
+      item.assignedTo = null;
+      item.routeOrder = 0;
+    });
+    // 不再重設 mainTargets
+    currentSortKey = 'default';
+    saveState();
+    updateUI();
+  }
+}
+
+function switchTab(tab) {
+  document.getElementById('scoutView').style.display = tab === 'scout' ? 'block' : 'none';
+  document.getElementById('routeView').style.display = tab === 'route' ? 'block' : 'none';
+  document.getElementById('mainTargetsView').style.display = tab === 'mainTargets' ? 'block' : 'none';
+  
+  document.getElementById('tabScoutBtn').classList.toggle('active', tab === 'scout');
+  document.getElementById('tabRouteBtn').classList.toggle('active', tab === 'route');
+  document.getElementById('tabMainTargetsBtn').classList.toggle('active', tab === 'mainTargets');
+  
+  if (tab === 'route') renderRouteView();
+  if (tab === 'mainTargets') renderMainTargets();
+}
+
+function handleSort(key) {
+  if (currentSortKey === key) {
+    currentSortAsc = !currentSortAsc;
+  } else {
+    currentSortKey = key;
+    if (['price', 'cp', 'slots', 'target'].includes(key)) {
+      currentSortAsc = false; 
+    } else {
+      currentSortAsc = true;
+    }
+  }
+  updateUI();
+}
+
+function updateUI() {
+  renderPlayersCards();
+  renderSummaryBar();
+  renderItemsTable();
+  if (document.getElementById('routeView').style.display !== 'none') renderRouteView();
+  if (document.getElementById('mainTargetsView').style.display !== 'none') renderMainTargets();
+}
+
+function renderPlayersCards() {
+  const container = document.getElementById('playersContainer');
+  container.innerHTML = '';
+  document.getElementById('playerCountSelect').value = state.playerCount;
+
+  for (let i = 0; i < state.playerCount; i++) {
+    const slots = calculatePlayerSlots(i);
+    const value = calculatePlayerValue(i);
+    const percent = Math.min(100, (slots / 10) * 100);
+
+    let statusClass = '';
+    let badgeClass = '';
+    let progressColor = 'var(--accent-cyan)';
+
+    if (slots === 10) {
+      statusClass = 'warning';
+      badgeClass = 'full';
+      progressColor = 'var(--gold)';
+    } else if (slots > 10) {
+      statusClass = 'danger';
+      badgeClass = 'over';
+      progressColor = 'var(--accent-red)';
+    }
+
+    const card = document.createElement('div');
+    card.className = `player-card ${statusClass}`;
+    card.innerHTML = `
+      <div class="player-header">
+        <input class="player-name-input" type="text" value="${state.playerNames[i]}" onchange="updatePlayerName(${i}, this.value)" title="點擊修改名稱">
+        <span class="slot-badge ${badgeClass}">${slots} / 10 格</span>
+      </div>
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill" style="width: ${percent}%; background-color: ${progressColor};"></div>
+      </div>
+      <div class="player-stats">
+        <span>分配價值: <strong>$${value.toLocaleString()}</strong></span>
+        <span>剩餘: ${Math.max(0, 10 - slots)} 格</span>
+      </div>
+    `;
+    container.appendChild(card);
+  }
+}
+
+function renderSummaryBar() {
+  const totalCapacity = state.playerCount * 10;
+  let totalAssignedSlots = 0;
+  let totalLoot = 0;
+  let targetCount = 0;
+  let unassignedTargetCount = 0;
+  let availableItemsCount = 0;
+
+  state.items.forEach(item => {
+    const numPrice = parseInt(item.price, 10) || 0;
+    if (numPrice > 0) {
+      availableItemsCount++;
+    }
+    if (item.isTarget) {
+      targetCount++;
+      if (item.assignedTo === null) unassignedTargetCount++;
+    }
+    if (item.assignedTo !== null) {
+      totalAssignedSlots += item.slots;
+      totalLoot += numPrice;
+    }
+  });
+
+  const remainingSlots = totalCapacity - totalAssignedSlots;
+  const slotsElem = document.getElementById('teamSlotsRemaining');
+  slotsElem.textContent = `${Math.max(0, remainingSlots)} / ${totalCapacity} 格`;
+  slotsElem.style.color = remainingSlots < 0 ? 'var(--accent-red)' : '#fff';
+  if (remainingSlots < 0) slotsElem.textContent += ' (已超載!)';
+
+  document.getElementById('availableItemsCount').textContent = `${availableItemsCount} 項`;
+  document.getElementById('totalTargetsCount').textContent = `${targetCount} 項`;
+  
+  const unassignedElem = document.getElementById('unassignedCount');
+  unassignedElem.textContent = `${unassignedTargetCount} 項`;
+  unassignedElem.style.color = unassignedTargetCount > 0 ? 'var(--accent-yellow)' : 'var(--accent-green)';
+  
+  document.getElementById('totalLootValue').textContent = `$${totalLoot.toLocaleString()}`;
+}
+
+function renderItemsTable() {
+  const tbody = document.getElementById('itemsTableBody');
+  const locFilter = document.getElementById('filterLocation').value;
+  const targetOnlyFilter = document.getElementById('filterTargetOnly').value;
+
+  document.querySelectorAll('.sort-icon').forEach(el => el.textContent = '');
+  if (currentSortKey !== 'default') {
+    const iconEl = document.getElementById(`sort-icon-${currentSortKey}`);
+    if (iconEl) iconEl.textContent = currentSortAsc ? '▲' : '▼';
+  }
+
+  let displayItems = state.items.filter(item => {
+    if (targetOnlyFilter === 'target' && !item.isTarget) return false;
+    if (targetOnlyFilter === 'available' && (parseInt(item.price, 10) || 0) <= 0) return false;
+    if (locFilter !== 'all' && !item.location.includes(locFilter)) return false;
+    return true;
+  });
+
+  displayItems.sort((a, b) => {
+    let valA, valB;
+    switch(currentSortKey) {
+      case 'target':
+        valA = a.isTarget ? 1 : 0;
+        valB = b.isTarget ? 1 : 0;
+        break;
+      case 'name': valA = a.name; valB = b.name; break;
+      case 'category': valA = a.category; valB = b.category; break;
+      case 'location': valA = a.location; valB = b.location; break;
+      case 'slots': valA = a.slots; valB = b.slots; break;
+      case 'price':
+        valA = parseInt(a.price, 10) || 0;
+        valB = parseInt(b.price, 10) || 0;
+        break;
+      case 'cp':
+        valA = a.slots > 0 ? (parseInt(a.price, 10) || 0) / a.slots : 0;
+        valB = b.slots > 0 ? (parseInt(b.price, 10) || 0) / b.slots : 0;
+        break;
+      default: 
+        valA = a.originalIndex;
+        valB = b.originalIndex;
+        break;
+    }
+
+    if (typeof valA === 'string' && typeof valB === 'string') {
+      const comp = valA.localeCompare(valB, 'zh-TW');
+      return currentSortAsc ? comp : -comp;
+    }
+
+    if (valA < valB) return currentSortAsc ? -1 : 1;
+    if (valA > valB) return currentSortAsc ? 1 : -1;
+    return 0;
+  });
+
+  tbody.innerHTML = '';
+
+  displayItems.forEach(item => {
+    const numPrice = parseInt(item.price, 10) || 0;
+    const unitPrice = item.slots > 0 ? Math.round(numPrice / item.slots) : 0;
+    const tr = document.createElement('tr');
+    
+    if (item.assignedTo !== null) {
+      tr.className = 'is-assigned' + (item.isTarget ? ' is-target' : '');
+    } else if (item.isTarget) {
+      tr.className = 'is-target';
+    }
+
+    let optionsHtml = `<option value="">-- 未指派 --</option>`;
+    for (let p = 0; p < state.playerCount; p++) {
+      const selected = item.assignedTo === p ? 'selected' : '';
+      optionsHtml += `<option value="${p}" ${selected}>${state.playerNames[p]}</option>`;
+    }
+
+    tr.innerHTML = `
+      <td style="text-align: center;">
+        <input type="checkbox" class="custom-checkbox" ${item.isTarget ? 'checked' : ''} onchange="toggleTarget('${item.id}', this.checked)">
+      </td>
+      <td style="font-weight: 600; color: ${item.color};">${item.name}</td>
+      <td style="color: var(--text-muted);">${item.category}</td>
+      <td><span class="badge-location">${item.location}</span></td>
+      <td style="text-align: center;"><span class="badge-slots">${item.slots} 格</span></td>
+      <td style="text-align: right;">
+        <input type="number" inputmode="numeric" class="price-input" value="${item.price}" placeholder="0" onchange="updatePrice('${item.id}', this.value)">
+      </td>
+      <td style="text-align: right;" class="unit-price-cell ${unitPrice >= 30000 ? 'top-tier' : ''}">
+        $${unitPrice.toLocaleString()}
+      </td>
+      <td>
+        <select class="assign-select ${item.assignedTo !== null ? 'assigned' : ''}" onchange="assignItem('${item.id}', this.value)">
+          ${optionsHtml}
+        </select>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function renderRouteView() {
+  const container = document.getElementById('routeGridContainer');
+  container.innerHTML = '';
+
+  for (let p = 0; p < state.playerCount; p++) {
+    const assignedItems = state.items.filter(i => i.assignedTo === p);
+    const card = document.createElement('div');
+    card.className = 'route-card';
+
+    let itemsListHtml = '';
+    if (assignedItems.length === 0) {
+      itemsListHtml = `<div class="empty-placeholder">目前尚未分配任何物品</div>`;
+    } else {
+      assignedItems.sort((a, b) => {
+        const orderA = a.routeOrder || 0;
+        const orderB = b.routeOrder || 0;
+        if (orderA !== orderB) {
+          return orderA - orderB;
+        }
+        return a.location.localeCompare(b.location);
+      });
+      
+      assignedItems.forEach(item => {
+        const numPrice = parseInt(item.price, 10) || 0;
+        const targetBadge = item.isTarget ? '<span style="font-size:0.7rem; background:var(--accent-yellow); color:#000; padding:1px 4px; border-radius:3px; margin-left:6px;">指定</span>' : '';
+        
+        itemsListHtml += `
+          <div class="route-item" draggable="true" data-item-id="${item.id}" data-player-id="${p}">
+            <div style="display: flex; align-items: center;">
+              <div class="drag-handle" title="按住拖曳排序">≡</div>
+              <div>
+                <div style="font-weight: 600; color: ${item.color};">${item.name}${targetBadge}</div>
+                <div class="item-loc">📍 區域: ${item.location} (${item.category})</div>
+              </div>
+            </div>
+            <div style="text-align: right;">
+              <span class="badge-slots">${item.slots} 格</span>
+              <div style="font-size: 0.75rem; color: var(--gold); margin-top: 2px;">$${numPrice.toLocaleString()}</div>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    const totalSlots = calculatePlayerSlots(p);
+    const totalVal = calculatePlayerValue(p);
+
+    card.innerHTML = `
+      <h3>
+        <span>👤 ${state.playerNames[p]}</span>
+        <span style="font-size: 0.8rem; font-weight: normal; color: ${totalSlots > 10 ? 'var(--accent-red)' : 'var(--accent-cyan)'};">
+          ${totalSlots} / 10 格 ($${totalVal.toLocaleString()})
+        </span>
+      </h3>
+      <div>${itemsListHtml}</div>
+    `;
+    container.appendChild(card);
+  }
+}
+
+// 渲染第三分頁：主要目標保留清單 (支援中文/英文雙行顯示)
+function renderMainTargets() {
+  const container = document.getElementById('mainTargetGridContainer');
+  container.innerHTML = '';
+  let checkedCount = 0;
+
+  state.mainTargets.forEach(target => {
+    if (target.checked) checkedCount++;
+    
+    const itemDiv = document.createElement('label');
+    itemDiv.className = `main-target-item ${target.checked ? 'checked' : ''}`;
+    
+    // 處理特殊的黑底與雙行樣式
+    let spanClass = '';
+    let enTextColor = 'var(--text-muted)';
+    if (target.bg === 'black') {
+      spanClass = 'special-black-bg';
+      enTextColor = target.color; // 如果是黑底紅字，英文也用紅色
+    }
+
+    itemDiv.innerHTML = `
+      <div style="display: flex; align-items: flex-start; gap: 12px; width: 100%;">
+        <input type="checkbox" class="custom-checkbox" style="margin-top: 4px;" ${target.checked ? 'checked' : ''} onchange="toggleMainTargetState('${target.id}', this.checked)">
+        <div class="${spanClass}" style="display: flex; flex-direction: column; line-height: 1.4; color: ${target.color}; width: 100%;">
+          <span style="font-weight: 600; font-size: 1rem;">${target.nameZh}</span>
+          <span style="font-size: 0.75rem; color: ${enTextColor};">${target.nameEn}</span>
+        </div>
+      </div>
+    `;
+    
+    itemDiv.onclick = (e) => {
+      e.preventDefault(); 
+      toggleMainTargetState(target.id, !target.checked);
+    };
+    
+    container.appendChild(itemDiv);
+  });
+
+  document.getElementById('mainTargetCount').textContent = checkedCount;
+}
+
+function toggleMainTargetState(id, isChecked) {
+  const mt = state.mainTargets.find(t => t.id === id);
+  if (mt) {
+    mt.checked = isChecked;
+    saveState();
+    renderMainTargets();
+  }
+}
+
+function initDragAndDrop() {
+  const container = document.getElementById('routeGridContainer');
+  let draggedItem = null;
+
+  container.addEventListener('dragstart', (e) => {
+    const target = e.target.closest('.route-item');
+    if (!target) return;
+    draggedItem = target;
+    e.dataTransfer.effectAllowed = 'move';
+    setTimeout(() => target.classList.add('dragging'), 0);
+  });
+
+  container.addEventListener('dragend', (e) => {
+    if (draggedItem) {
+      draggedItem.classList.remove('dragging');
+      draggedItem = null;
+    }
+  });
+
+  container.addEventListener('dragover', (e) => {
+    e.preventDefault(); 
+    const targetItem = e.target.closest('.route-item');
+    if (!targetItem || targetItem === draggedItem) return;
+    
+    if (targetItem.dataset.playerId !== draggedItem.dataset.playerId) return;
+
+    const list = targetItem.parentNode;
+    const bounding = targetItem.getBoundingClientRect();
+    const offset = e.clientY - bounding.top - bounding.height / 2;
+    
+    if (offset < 0) {
+      list.insertBefore(draggedItem, targetItem);
+    } else {
+      list.insertBefore(draggedItem, targetItem.nextSibling);
+    }
+  });
+
+  container.addEventListener('drop', (e) => {
+    e.preventDefault();
+    if (!draggedItem) return;
+    
+    const list = draggedItem.parentNode;
+    const items = list.querySelectorAll('.route-item');
+    
+    items.forEach((el, index) => {
+      const itemId = el.dataset.itemId;
+      const stateItem = state.items.find(i => i.id === itemId);
+      if (stateItem) {
+        stateItem.routeOrder = index + 1; 
+      }
+    });
+    saveState();
+  });
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  initState();
+  updateUI();
+  initDragAndDrop();
+});
+</script>
+
+</body>
+</html>
