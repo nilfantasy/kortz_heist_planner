@@ -578,7 +578,7 @@
 <div class="container">
   <header>
     <div class="title-area">
-      <h1>GTA 科茲中心任務分配工具 <span>v1.11</span></h1>
+      <h1>GTA 科茲中心任務分配工具 <span>v1.12</span></h1>
     </div>
     <div class="nav-buttons">
       <div style="display: flex; align-items: center; gap: 6px;">
@@ -740,7 +740,7 @@ const DEFAULT_ITEMS = [
   { id: 'j8', name: '科卡爾手鐲', category: '展示櫃', location: '2F', slots: 1, color: C_DEFAULT }
 ];
 
-// 主要目標保留清單 (支援中文/英文雙行顯示)
+// 主要目標保留清單
 const DEFAULT_MAIN_TARGETS = [
   { id: 'mt1', nameZh: '免個清淨', nameEn: 'Hare Oneself Think', color: C_DEFAULT, bg: 'transparent' },
   { id: 'mt2', nameZh: '羅馬的衰亡', nameEn: 'The Downfall of Rome', color: C_DEFAULT, bg: 'transparent' },
@@ -771,8 +771,8 @@ const DEFAULT_MAIN_TARGETS = [
   { id: 'mt27', nameZh: '最後的放縱', nameEn: 'La Dernière Débauche', color: C_RED, bg: 'black' }
 ];
 
-// 升級至 v11 以套用最新的雙行文字結構
-const STORAGE_KEY = 'gta_kortz_mission_state_v11';
+// 版本升級至 v12
+const STORAGE_KEY = 'gta_kortz_mission_state_v12';
 
 let state = {
   playerCount: 2,
@@ -870,6 +870,22 @@ function updatePrice(itemId, val) {
   }
 }
 
+// 貨車專屬狀態更新邏輯
+function updateTruckStatus(itemId, isChecked) {
+  const item = state.items.find(i => i.id === itemId);
+  if (item) {
+    if (isChecked) {
+      item.price = 125000; // 使用 115k~135k 的平均值計算 CP
+    } else {
+      item.price = '';
+      item.isTarget = false;
+      item.assignedTo = null;
+    }
+    saveState();
+    updateUI();
+  }
+}
+
 function assignItem(itemId, playerIndex) {
   const item = state.items.find(i => i.id === itemId);
   if (!item) return;
@@ -951,7 +967,6 @@ function resetMission() {
       item.assignedTo = null;
       item.routeOrder = 0;
     });
-    // 不再重設 mainTargets
     currentSortKey = 'default';
     saveState();
     updateUI();
@@ -1147,6 +1162,25 @@ function renderItemsTable() {
       optionsHtml += `<option value="${p}" ${selected}>${state.playerNames[p]}</option>`;
     }
 
+    // 運輸貨車使用核取方塊，其他物品使用輸入框
+    let priceInputHtml = '';
+    if (item.id === 't1') {
+      priceInputHtml = `
+        <label style="display: flex; align-items: center; justify-content: flex-end; gap: 6px; cursor: pointer; margin: 0;">
+          <span style="font-size: 0.8rem; color: var(--text-muted);">115k~135k</span>
+          <input type="checkbox" class="custom-checkbox" ${numPrice > 0 ? 'checked' : ''} onchange="updateTruckStatus('${item.id}', this.checked)">
+        </label>
+      `;
+    } else {
+      priceInputHtml = `<input type="number" inputmode="numeric" class="price-input" value="${item.price}" placeholder="0" onchange="updatePrice('${item.id}', this.value)">`;
+    }
+
+    // 單位價格加上(均)提示
+    let unitPriceHtml = `$${unitPrice.toLocaleString()}`;
+    if (item.id === 't1' && numPrice > 0) {
+      unitPriceHtml += ` <span style="font-size:0.7rem; color:var(--text-muted); margin-left:4px;">(均)</span>`;
+    }
+
     tr.innerHTML = `
       <td style="text-align: center;">
         <input type="checkbox" class="custom-checkbox" ${item.isTarget ? 'checked' : ''} onchange="toggleTarget('${item.id}', this.checked)">
@@ -1155,11 +1189,11 @@ function renderItemsTable() {
       <td style="color: var(--text-muted);">${item.category}</td>
       <td><span class="badge-location">${item.location}</span></td>
       <td style="text-align: center;"><span class="badge-slots">${item.slots} 格</span></td>
-      <td style="text-align: right;">
-        <input type="number" inputmode="numeric" class="price-input" value="${item.price}" placeholder="0" onchange="updatePrice('${item.id}', this.value)">
+      <td style="text-align: right; padding-right: 12px;">
+        ${priceInputHtml}
       </td>
       <td style="text-align: right;" class="unit-price-cell ${unitPrice >= 30000 ? 'top-tier' : ''}">
-        $${unitPrice.toLocaleString()}
+        ${unitPriceHtml}
       </td>
       <td>
         <select class="assign-select ${item.assignedTo !== null ? 'assigned' : ''}" onchange="assignItem('${item.id}', this.value)">
@@ -1197,6 +1231,11 @@ function renderRouteView() {
         const numPrice = parseInt(item.price, 10) || 0;
         const targetBadge = item.isTarget ? '<span style="font-size:0.7rem; background:var(--accent-yellow); color:#000; padding:1px 4px; border-radius:3px; margin-left:6px;">指定</span>' : '';
         
+        let priceStr = `$${numPrice.toLocaleString()}`;
+        if (item.id === 't1' && numPrice > 0) {
+          priceStr = `$115k ~ 135k`;
+        }
+
         itemsListHtml += `
           <div class="route-item" draggable="true" data-item-id="${item.id}" data-player-id="${p}">
             <div style="display: flex; align-items: center;">
@@ -1208,7 +1247,7 @@ function renderRouteView() {
             </div>
             <div style="text-align: right;">
               <span class="badge-slots">${item.slots} 格</span>
-              <div style="font-size: 0.75rem; color: var(--gold); margin-top: 2px;">$${numPrice.toLocaleString()}</div>
+              <div style="font-size: 0.75rem; color: var(--gold); margin-top: 2px;">${priceStr}</div>
             </div>
           </div>
         `;
@@ -1231,7 +1270,6 @@ function renderRouteView() {
   }
 }
 
-// 渲染第三分頁：主要目標保留清單 (支援中文/英文雙行顯示)
 function renderMainTargets() {
   const container = document.getElementById('mainTargetGridContainer');
   container.innerHTML = '';
@@ -1243,12 +1281,11 @@ function renderMainTargets() {
     const itemDiv = document.createElement('label');
     itemDiv.className = `main-target-item ${target.checked ? 'checked' : ''}`;
     
-    // 處理特殊的黑底與雙行樣式
     let spanClass = '';
     let enTextColor = 'var(--text-muted)';
     if (target.bg === 'black') {
       spanClass = 'special-black-bg';
-      enTextColor = target.color; // 如果是黑底紅字，英文也用紅色
+      enTextColor = target.color; 
     }
 
     itemDiv.innerHTML = `
