@@ -39,7 +39,6 @@
       margin: 0 auto;
     }
 
-    /* 頂部導覽列 */
     header {
       background: linear-gradient(135deg, #1e293b, #0f172a);
       border: 1px solid var(--border-color);
@@ -115,7 +114,6 @@
       background: rgba(239, 68, 68, 0.4);
     }
 
-    /* 玩家與容量區塊 */
     .players-container {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -211,7 +209,6 @@
       color: #38bdf8;
     }
 
-    /* 隊伍總覽資訊 */
     .team-summary-bar {
       background: #141c27;
       border: 1px solid var(--border-color);
@@ -236,7 +233,6 @@
       color: #fff;
     }
 
-    /* 模式切換分頁 */
     .tabs {
       display: flex;
       gap: 8px;
@@ -266,7 +262,6 @@
       color: var(--accent-cyan);
     }
 
-    /* 物品清單控制列 */
     .filter-bar {
       background: var(--bg-card);
       border: 1px solid var(--border-color);
@@ -301,7 +296,6 @@
       outline: none;
     }
 
-    /* 物品表格 */
     .table-responsive {
       overflow-x: auto;
       background: var(--bg-card);
@@ -436,7 +430,6 @@
       color: #86efac;
     }
 
-    /* 路線執行清單檢視 (Route View) & 拖曳排序樣式 */
     .route-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -511,7 +504,6 @@
       accent-color: var(--accent-yellow);
     }
 
-    /* 主要目標保留清單專屬樣式 */
     .main-target-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -578,7 +570,7 @@
 <div class="container">
   <header>
     <div class="title-area">
-      <h1>GTA 科茲中心任務分配工具 <span>v1.12</span></h1>
+      <h1>GTA 科茲中心任務分配工具 <span>v1.13 穩定版</span></h1>
     </div>
     <div class="nav-buttons">
       <div style="display: flex; align-items: center; gap: 6px;">
@@ -626,7 +618,6 @@
     <button class="tab-btn" id="tabMainTargetsBtn" onclick="switchTab('mainTargets')">🖼️ 主要目標保留清單</button>
   </div>
 
-  <!-- 分頁一：偵查與人員分配表 -->
   <div id="scoutView">
     <div class="filter-bar">
       <div class="filter-group">
@@ -673,7 +664,6 @@
     </div>
   </div>
 
-  <!-- 分頁二：樓層路線執行檢視 -->
   <div id="routeView" style="display: none;">
     <div class="filter-bar" style="margin-bottom: 12px; justify-content: flex-end;">
       <span style="font-size: 0.8rem; color: var(--text-muted);">💡 提示：按住物品左側的「≡」圖示可上下拖曳，自由安排跑圖與拿取順序。</span>
@@ -681,13 +671,11 @@
     <div class="route-grid" id="routeGridContainer"></div>
   </div>
 
-  <!-- 分頁三：主要目標保留清單 -->
   <div id="mainTargetsView" style="display: none;">
     <div class="filter-bar" style="margin-bottom: 16px;">
       <span style="font-size: 0.85rem; color: var(--text-muted);">💡 點擊卡片勾選目前已保留的主要目標。 已勾選統計：<strong id="mainTargetCount" style="color:var(--accent-cyan); font-size: 1rem;">0</strong> / 27</span>
     </div>
     <div class="main-target-grid" id="mainTargetGridContainer">
-      <!-- JS 動態產生主要目標清單 -->
     </div>
   </div>
 
@@ -771,8 +759,8 @@ const DEFAULT_MAIN_TARGETS = [
   { id: 'mt27', nameZh: '最後的放縱', nameEn: 'La Dernière Débauche', color: C_RED, bg: 'black' }
 ];
 
-// 版本升級至 v12
-const STORAGE_KEY = 'gta_kortz_mission_state_v12';
+// 【最終穩定版儲存鑰匙】不再加上版本號，未來更新資料就不會再消失
+const STORAGE_KEY = 'gta_kortz_mission_state_stable';
 
 let state = {
   playerCount: 2,
@@ -870,12 +858,11 @@ function updatePrice(itemId, val) {
   }
 }
 
-// 貨車專屬狀態更新邏輯
 function updateTruckStatus(itemId, isChecked) {
   const item = state.items.find(i => i.id === itemId);
   if (item) {
     if (isChecked) {
-      item.price = 125000; // 使用 115k~135k 的平均值計算 CP
+      item.price = 125000; 
     } else {
       item.price = '';
       item.isTarget = false;
@@ -961,12 +948,14 @@ function autoAssignOptimal() {
 
 function resetMission() {
   if (confirm('確定要清空本次任務的所有偵查與分配資料嗎？\n\n注意：這不會影響「主要目標保留清單」與你的「隊友名稱」。')) {
+    // 僅重設偵查表內的物品
     state.items.forEach(item => {
       item.isTarget = false;
       item.price = '';
       item.assignedTo = null;
       item.routeOrder = 0;
     });
+    // 不碰 state.mainTargets
     currentSortKey = 'default';
     saveState();
     updateUI();
@@ -1162,7 +1151,6 @@ function renderItemsTable() {
       optionsHtml += `<option value="${p}" ${selected}>${state.playerNames[p]}</option>`;
     }
 
-    // 運輸貨車使用核取方塊，其他物品使用輸入框
     let priceInputHtml = '';
     if (item.id === 't1') {
       priceInputHtml = `
@@ -1175,7 +1163,6 @@ function renderItemsTable() {
       priceInputHtml = `<input type="number" inputmode="numeric" class="price-input" value="${item.price}" placeholder="0" onchange="updatePrice('${item.id}', this.value)">`;
     }
 
-    // 單位價格加上(均)提示
     let unitPriceHtml = `$${unitPrice.toLocaleString()}`;
     if (item.id === 't1' && numPrice > 0) {
       unitPriceHtml += ` <span style="font-size:0.7rem; color:var(--text-muted); margin-left:4px;">(均)</span>`;
