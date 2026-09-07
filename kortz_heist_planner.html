@@ -764,7 +764,7 @@ const STORAGE_KEY = 'gta_kortz_mission_state_stable';
 
 let state = {
   playerCount: 2,
-  playerNames: ['nilfantasy', 'k665025', '玩家 3', '玩家 4'],
+  playerNames: ['玩家 1', '玩家 2', '玩家 3', '玩家 4'],
   items: [],
   mainTargets: []
 };
@@ -778,7 +778,7 @@ function initState() {
     try {
       state = JSON.parse(saved);
       if (!state.playerNames || state.playerNames.length < 4) {
-        state.playerNames = ['nilfantasy', 'k665025', '玩家 3', '玩家 4'];
+        state.playerNames = ['玩家 1', '玩家 2', '玩家 3', '玩家 4'];
       }
       state.items = state.items.map((item, index) => ({
          ...item,
@@ -798,7 +798,7 @@ function initState() {
 
 function resetToDefault() {
   state.playerCount = 2;
-  state.playerNames = ['nilfantasy', 'k665025', '玩家 3', '玩家 4'];
+  state.playerNames = ['玩家 1', '玩家 2', '玩家 3', '玩家 4'];
   state.items = DEFAULT_ITEMS.map((item, index) => ({
     ...item,
     isTarget: false,
