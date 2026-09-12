@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>GTA 科茲中心任務分配系統</title>
-  <!-- 引入 PNG 格式的 Favicon -->
-  <link rel="icon" type="image/png" href="favicon.png">
+  <!-- 內嵌花瓶彈孔 Favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%2318202c'/><path d='M38 25 L62 25 L58 35 C68 45 74 60 66 78 L34 78 C26 60 32 45 42 35 Z' fill='%231e3a8a' stroke='%23f59e0b' stroke-width='2.5'/><circle cx='50' cy='55' r='10' fill='%2394a3b8'/><circle cx='50' cy='55' r='5.5' fill='%230f141c'/><path d='M43 50 L38 46 M57 50 L62 46 M50 43 L50 37 M44 60 L40 64 M56 60 L60 64' stroke='%23e2e8f0' stroke-width='2'/><line x1='25' y1='86' x2='75' y2='86' stroke='%23ec4899' stroke-width='4' stroke-linecap='round'/></svg>">
   <style>
     :root {
       --bg-main: #0f141c;
@@ -20,6 +20,10 @@
       --accent-red: #ef4444;
       --accent-purple: #8b5cf6;
       --gold: #fbbf24;
+      --player-1: #00d2ff;
+      --player-2: #10b981;
+      --player-3: #f59e0b;
+      --player-4: #8b5cf6;
     }
 
     * {
@@ -107,6 +111,16 @@
       background: #0369a1;
     }
 
+    .btn-share {
+      background: #1e3a8a;
+      border-color: #60a5fa;
+      color: #bfdbfe;
+    }
+    .btn-share:hover {
+      background: #2563eb;
+      color: #fff;
+    }
+
     .btn-danger {
       background: rgba(239, 68, 68, 0.2);
       border-color: var(--accent-red);
@@ -114,6 +128,18 @@
     }
     .btn-danger:hover {
       background: rgba(239, 68, 68, 0.4);
+    }
+
+    .alert-banner {
+      background: rgba(2, 132, 199, 0.2);
+      border: 1px solid var(--accent-cyan);
+      border-radius: 8px;
+      padding: 10px 16px;
+      margin-bottom: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.9rem;
     }
 
     .players-container {
@@ -241,6 +267,7 @@
       margin-bottom: 12px;
       border-bottom: 1px solid var(--border-color);
       padding-bottom: 8px;
+      flex-wrap: wrap;
     }
 
     .tab-btn {
@@ -546,6 +573,216 @@
       border: 1px solid #333;
     }
 
+    /* 分享彈窗 Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .modal-content {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      width: 100%;
+      max-width: 540px;
+      padding: 20px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .modal-header h3 {
+      font-size: 1.15rem;
+      color: #fff;
+    }
+
+    .modal-close-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1.5rem;
+      cursor: pointer;
+      line-height: 1;
+    }
+
+    .share-section {
+      margin-bottom: 16px;
+    }
+
+    .share-section label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--accent-cyan);
+      margin-bottom: 6px;
+    }
+
+    .share-input-group {
+      display: flex;
+      gap: 8px;
+    }
+
+    .share-input-group input {
+      flex: 1;
+    }
+
+    .share-textarea {
+      width: 100%;
+      height: 140px;
+      background: #111720;
+      border: 1px solid var(--border-color);
+      color: #e2e8f0;
+      padding: 8px 10px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-family: inherit;
+      resize: vertical;
+      margin-bottom: 8px;
+    }
+
+    /* 任務平面圖專屬樣式 (v1.20 更新: 取消 flex 以支援溢出捲軸) */
+    .map-subtabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .map-subtabs button {
+      background: #1f2937;
+      color: var(--text-muted);
+      border: 1px solid var(--border-color);
+      padding: 6px 16px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+    .map-subtabs button.active {
+      background: var(--accent-cyan);
+      color: #000;
+      font-weight: 600;
+      border-color: var(--accent-cyan);
+    }
+    
+    .map-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      background: var(--bg-card);
+      padding: 10px 14px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      margin-bottom: 12px;
+      align-items: center;
+    }
+    
+    .tool-btn {
+      background: #243144;
+      border: 1px solid var(--border-color);
+      color: #fff;
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+    .tool-btn.active {
+      background: #1e3a8a;
+      border-color: var(--accent-cyan);
+      color: #bfdbfe;
+    }
+    .tool-btn:hover:not(.active) {
+      background: #33445c;
+    }
+    .tool-btn.eraser-active {
+      background: rgba(239, 68, 68, 0.2);
+      border-color: var(--accent-red);
+      color: #fca5a5;
+    }
+
+    .color-picker {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      border-left: 1px solid var(--border-color);
+      padding-left: 10px;
+      margin-left: 4px;
+      transition: opacity 0.2s;
+    }
+    .color-circle {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid transparent;
+    }
+    .color-circle.active {
+      border-color: #fff;
+      transform: scale(1.1);
+    }
+
+    /* 確保放大時能出現卷軸 */
+    .map-container-wrapper {
+      position: relative;
+      width: 100%;
+      height: 70vh; 
+      background: #0d1117;
+      border: 1px dashed var(--border-color);
+      border-radius: 8px;
+      overflow: auto; /* 這是產生卷軸的關鍵 */
+      text-align: center; /* 讓內部圖小於100%時能置中 */
+    }
+    
+    .map-inner {
+      position: relative;
+      display: inline-block;
+      width: 100%; /* 透過 js 改為 50~150% */
+      vertical-align: top;
+      min-height: 100%; /* 避免圖片尚未載入時塌陷 */
+    }
+
+    #mapImageEl {
+      width: 100%;
+      height: auto;
+      display: block;
+      pointer-events: none;
+      user-select: none;
+    }
+
+    #drawingCanvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 10;
+      cursor: crosshair;
+      touch-action: none;
+    }
+
+    #noMapText {
+      color: var(--text-muted);
+      position: absolute;
+      text-align: center;
+      line-height: 1.6;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+
     @media (max-width: 768px) {
       body {
         padding: 8px;
@@ -564,6 +801,9 @@
       .team-summary-bar {
         justify-content: flex-start;
       }
+      .map-container-wrapper {
+        height: 60vh; 
+      }
     }
   </style>
 </head>
@@ -572,7 +812,7 @@
 <div class="container">
   <header>
     <div class="title-area">
-      <h1>GTA 科茲中心任務分配工具 <span>v1.13 穩定版</span></h1>
+      <h1>GTA 科茲中心任務分配工具 <span>v1.20 穩定版</span></h1>
     </div>
     <div class="nav-buttons">
       <div style="display: flex; align-items: center; gap: 6px;">
@@ -584,10 +824,22 @@
           <option value="4">4 人</option>
         </select>
       </div>
+      <button class="btn btn-share" onclick="openShareModal()">📤 分享分配</button>
       <button class="btn" onclick="autoAssignOptimal()">⚡ 依 CP 值最佳化自動分配</button>
       <button class="btn btn-danger" onclick="resetMission()">🔄 重設本次任務</button>
     </div>
   </header>
+
+  <div id="sharedNoticeBanner" class="alert-banner" style="display: none;">
+    <div>
+      <strong>📥 已成功載入分享的任務分配！</strong>
+      <span style="color: var(--text-muted); font-size: 0.8rem; margin-left: 8px;">(已儲存至此裝置)</span>
+    </div>
+    <div style="display: flex; gap: 8px;">
+      <button class="btn btn-primary" style="padding: 4px 10px; font-size: 0.75rem;" onclick="switchTab('route')">🗺️ 查看路線表</button>
+      <button class="btn" style="padding: 4px 10px; font-size: 0.75rem;" onclick="dismissSharedBanner()">關閉</button>
+    </div>
+  </div>
 
   <div class="players-container" id="playersContainer"></div>
 
@@ -616,8 +868,9 @@
 
   <div class="tabs">
     <button class="tab-btn active" id="tabScoutBtn" onclick="switchTab('scout')">📋 偵查與人員分配</button>
-    <button class="tab-btn" id="tabRouteBtn" onclick="switchTab('route')">🗺️ 樓層路線執行表</button>
+    <button class="tab-btn" id="tabRouteBtn" onclick="switchTab('route')">🏃 樓層路線執行表</button>
     <button class="tab-btn" id="tabMainTargetsBtn" onclick="switchTab('mainTargets')">🖼️ 主要目標保留清單</button>
+    <button class="tab-btn" id="tabMapBtn" onclick="switchTab('map')">📍 任務平面圖</button>
   </div>
 
   <div id="scoutView">
@@ -641,7 +894,6 @@
           <option value="target">僅顯示指定物品 (有勾選)</option>
         </select>
       </div>
-
       <div class="filter-group">
         <span style="font-size: 0.8rem; color: var(--text-muted);">💡 輸入金額 = 現場有偵查到；若該物品為強制取得任務目標，請手動勾選最左側的「指定」。</span>
       </div>
@@ -677,14 +929,85 @@
     <div class="filter-bar" style="margin-bottom: 16px;">
       <span style="font-size: 0.85rem; color: var(--text-muted);">💡 點擊卡片勾選目前已保留的主要目標。 已勾選統計：<strong id="mainTargetCount" style="color:var(--accent-cyan); font-size: 1rem;">0</strong> / 27</span>
     </div>
-    <div class="main-target-grid" id="mainTargetGridContainer">
+    <div class="main-target-grid" id="mainTargetGridContainer"></div>
+  </div>
+
+  <!-- 分頁四：任務平面圖與路線規劃 -->
+  <div id="mapView" style="display: none;">
+    <div class="map-subtabs" id="mapSubTabs">
+      <button class="active" onclick="switchMapIndex(0)">圖紙 1 (map1)</button>
+      <button onclick="switchMapIndex(1)">圖紙 2 (map2)</button>
+      <button onclick="switchMapIndex(2)">圖紙 3 (map3)</button>
+    </div>
+
+    <div class="map-toolbar">
+      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <button class="tool-btn" id="toolPanBtn" onclick="setDrawTool('pan')" title="使用手指或滑鼠移動地圖">✋ 拖曳</button>
+        <button class="tool-btn active" id="toolLineBtn" onclick="setDrawTool('line')">✏️ 畫路線</button>
+        <button class="tool-btn" id="toolMarkerBtn" onclick="setDrawTool('marker')">🔢 標記</button>
+        <button class="tool-btn" id="toolEraserBtn" onclick="setDrawTool('eraser')" title="擦除線條或刪除標記點(自動重新編號)">🧽 橡皮擦</button>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 6px; border-left: 1px solid var(--border-color); padding-left: 10px; margin-left: 4px;">
+        <span style="font-size: 0.85rem; color: var(--text-muted);">🔍</span>
+        <input type="range" id="mapZoomSlider" min="50" max="150" value="100" oninput="updateMapZoom()" style="width: 80px; accent-color: var(--accent-cyan);">
+        <span id="mapZoomLabel" style="font-size: 0.8rem; color: var(--text-main); min-width: 35px;">100%</span>
+      </div>
+
+      <div class="color-picker" id="colorPickerUI">
+        <!-- 顏色選擇器由 JS 產生 -->
+      </div>
+      
+      <div style="flex: 1;"></div>
+      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <button class="btn" style="background: #374151;" onclick="undoDraw()">↩️ 復原一筆</button>
+        <button class="btn btn-danger" onclick="clearDraw()">🗑️ 清空路線</button>
+      </div>
+    </div>
+
+    <div class="map-container-wrapper" id="mapContainer">
+      <div class="map-inner">
+        <img id="mapImageEl" style="display: none;">
+        <canvas id="drawingCanvas"></canvas>
+      </div>
+      <div id="noMapText"></div>
     </div>
   </div>
 
 </div>
 
+<!-- 分享功能 Modal -->
+<div id="shareModal" class="modal-overlay" onclick="closeShareModal(event)">
+  <div class="modal-content" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3>📤 分享本次任務規劃</h3>
+      <button class="modal-close-btn" onclick="closeShareModal()">&times;</button>
+    </div>
+    <div style="margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border-color);">
+      <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+        <input type="checkbox" id="shareIncludeMainTargets" class="custom-checkbox" checked onchange="updateShareContent()">
+        <span style="font-size: 0.9rem; color: #fff; user-select: none;">包含「主要目標保留清單」</span>
+      </label>
+    </div>
+    <div class="share-section">
+      <label>🔗 網頁分享連結（隊友開啟可直接看介面與路線）</label>
+      <div class="share-input-group">
+        <input type="text" id="shareUrlInput" readonly>
+        <button class="btn btn-primary" onclick="copyShareUrl()">複製連結</button>
+      </div>
+      <span style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; display: block;">
+        💡 隊友需在同一個區域網路 (Wi-Fi) 下開啟此連結。(註：平面圖與手繪路線為本機資料，不會傳送)
+      </span>
+    </div>
+    <div class="share-section">
+      <label>💬 文字速報（適合直接貼到 Discord / LINE）</label>
+      <textarea id="shareTextSummary" class="share-textarea" readonly></textarea>
+      <button class="btn" style="width: 100%; justify-content: center;" onclick="copyShareText()">複製文字速報</button>
+    </div>
+  </div>
+</div>
+
 <script>
-// 顏色定義
 const C_BLUE = '#60a5fa';   
 const C_GOLD = '#fbbf24';   
 const C_RED = '#f87171';    
@@ -692,7 +1015,8 @@ const C_PURPLE = '#c084fc';
 const C_GREEN = '#4ade80';  
 const C_DEFAULT = '#e2e8f0'; 
 
-// 偵查物品資料清單
+const PLAYER_COLORS = ['#00d2ff', '#10b981', '#f59e0b', '#8b5cf6'];
+
 const DEFAULT_ITEMS = [
   { id: 'p1', name: '上行下效', category: '畫作', location: '畫廊', slots: 5, color: C_BLUE },
   { id: 'p2', name: '依線行事', category: '畫作', location: '畫廊', slots: 5, color: C_BLUE },
@@ -730,7 +1054,6 @@ const DEFAULT_ITEMS = [
   { id: 'j8', name: '科卡爾手鐲', category: '展示櫃', location: '2F', slots: 1, color: C_DEFAULT }
 ];
 
-// 主要目標保留清單
 const DEFAULT_MAIN_TARGETS = [
   { id: 'mt1', nameZh: '免個清淨', nameEn: 'Hare Oneself Think', color: C_DEFAULT, bg: 'transparent' },
   { id: 'mt2', nameZh: '羅馬的衰亡', nameEn: 'The Downfall of Rome', color: C_DEFAULT, bg: 'transparent' },
@@ -761,8 +1084,8 @@ const DEFAULT_MAIN_TARGETS = [
   { id: 'mt27', nameZh: '最後的放縱', nameEn: 'La Dernière Débauche', color: C_RED, bg: 'black' }
 ];
 
-// 【最終穩定版儲存鑰匙】不再加上版本號，未來更新資料就不會再消失
 const STORAGE_KEY = 'gta_kortz_mission_state_stable';
+const MAPS_DRAW_KEY = 'gta_kortz_mission_maps_drawings';
 
 let state = {
   playerCount: 2,
@@ -773,6 +1096,19 @@ let state = {
 
 let currentSortKey = 'default';
 let currentSortAsc = true;
+
+// 支援自動偵測 jpg, png, jpeg
+const MAP_FILES = [
+  ['map1.jpg', 'map1.png', 'map1.jpeg'],
+  ['map2.jpg', 'map2.png', 'map2.jpeg'],
+  ['map3.jpg', 'map3.png', 'map3.jpeg']
+];
+let mapDrawState = [
+  { drawings: [], markerCounter: 1 },
+  { drawings: [], markerCounter: 1 },
+  { drawings: [], markerCounter: 1 }
+];
+let activeMapIdx = 0;
 
 function initState() {
   const saved = localStorage.getItem(STORAGE_KEY);
@@ -796,6 +1132,18 @@ function initState() {
   } else {
     resetToDefault();
   }
+  
+  checkUrlHashForSharedData();
+  
+  const savedDrawings = localStorage.getItem(MAPS_DRAW_KEY);
+  if (savedDrawings) {
+    try {
+      mapDrawState = JSON.parse(savedDrawings);
+      if (mapDrawState.length < 3) throw new Error("Format");
+    } catch(e) {
+      // ignore
+    }
+  }
 }
 
 function resetToDefault() {
@@ -818,6 +1166,10 @@ function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
+function saveMapDrawState() {
+  localStorage.setItem(MAPS_DRAW_KEY, JSON.stringify(mapDrawState));
+}
+
 function changePlayerCount(count) {
   state.playerCount = parseInt(count, 10);
   state.items.forEach(item => {
@@ -827,6 +1179,7 @@ function changePlayerCount(count) {
   });
   saveState();
   updateUI();
+  updateMapColorPicker(); 
 }
 
 function updatePlayerName(index, name) {
@@ -950,14 +1303,12 @@ function autoAssignOptimal() {
 
 function resetMission() {
   if (confirm('確定要清空本次任務的所有偵查與分配資料嗎？\n\n注意：這不會影響「主要目標保留清單」與你的「隊友名稱」。')) {
-    // 僅重設偵查表內的物品
     state.items.forEach(item => {
       item.isTarget = false;
       item.price = '';
       item.assignedTo = null;
       item.routeOrder = 0;
     });
-    // 不碰 state.mainTargets
     currentSortKey = 'default';
     saveState();
     updateUI();
@@ -968,13 +1319,19 @@ function switchTab(tab) {
   document.getElementById('scoutView').style.display = tab === 'scout' ? 'block' : 'none';
   document.getElementById('routeView').style.display = tab === 'route' ? 'block' : 'none';
   document.getElementById('mainTargetsView').style.display = tab === 'mainTargets' ? 'block' : 'none';
+  document.getElementById('mapView').style.display = tab === 'map' ? 'block' : 'none';
   
   document.getElementById('tabScoutBtn').classList.toggle('active', tab === 'scout');
   document.getElementById('tabRouteBtn').classList.toggle('active', tab === 'route');
   document.getElementById('tabMainTargetsBtn').classList.toggle('active', tab === 'mainTargets');
+  document.getElementById('tabMapBtn').classList.toggle('active', tab === 'map');
   
   if (tab === 'route') renderRouteView();
   if (tab === 'mainTargets') renderMainTargets();
+  if (tab === 'map') {
+    updateMapColorPicker();
+    renderMap();
+  }
 }
 
 function handleSort(key) {
@@ -1011,7 +1368,7 @@ function renderPlayersCards() {
 
     let statusClass = '';
     let badgeClass = '';
-    let progressColor = 'var(--accent-cyan)';
+    let progressColor = PLAYER_COLORS[i] || 'var(--accent-cyan)';
 
     if (slots === 10) {
       statusClass = 'warning';
@@ -1027,7 +1384,10 @@ function renderPlayersCards() {
     card.className = `player-card ${statusClass}`;
     card.innerHTML = `
       <div class="player-header">
-        <input class="player-name-input" type="text" value="${state.playerNames[i]}" onchange="updatePlayerName(${i}, this.value)" title="點擊修改名稱">
+        <div style="display:flex; align-items:center; gap:6px; width: 60%;">
+          <div style="width:10px; height:10px; border-radius:50%; background:${PLAYER_COLORS[i]};"></div>
+          <input class="player-name-input" type="text" value="${state.playerNames[i]}" onchange="updatePlayerName(${i}, this.value)" style="width: 100%;" title="點擊修改名稱">
+        </div>
         <span class="slot-badge ${badgeClass}">${slots} / 10 格</span>
       </div>
       <div class="progress-bar-bg">
@@ -1248,7 +1608,10 @@ function renderRouteView() {
 
     card.innerHTML = `
       <h3>
-        <span>👤 ${state.playerNames[p]}</span>
+        <span style="display:flex; align-items:center; gap:6px;">
+          <div style="width:12px; height:12px; border-radius:50%; background:${PLAYER_COLORS[p]};"></div>
+          👤 ${state.playerNames[p]}
+        </span>
         <span style="font-size: 0.8rem; font-weight: normal; color: ${totalSlots > 10 ? 'var(--accent-red)' : 'var(--accent-cyan)'};">
           ${totalSlots} / 10 格 ($${totalVal.toLocaleString()})
         </span>
@@ -1360,6 +1723,510 @@ function initDragAndDrop() {
     });
     saveState();
   });
+}
+
+// ----------------------------------------------------
+// 分享功能核心模組 
+// ----------------------------------------------------
+function utf8ToBase64(str) {
+  return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (match, p1) => String.fromCharCode('0x' + p1)));
+}
+
+function base64ToUtf8(str) {
+  return decodeURIComponent(Array.prototype.map.call(atob(str), c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
+}
+
+function updateShareContent() {
+  document.getElementById('shareUrlInput').value = generateShareUrl();
+  document.getElementById('shareTextSummary').value = generateTextSummary();
+}
+
+function generateShareUrl() {
+  const includeMainTargets = document.getElementById('shareIncludeMainTargets').checked;
+  const payload = {
+    c: state.playerCount,
+    n: state.playerNames.slice(0, state.playerCount),
+    items: state.items
+      .filter(i => (parseInt(i.price, 10) || 0) > 0 || i.isTarget || i.assignedTo !== null)
+      .map(i => ({
+        id: i.id,
+        pr: i.price,
+        t: i.isTarget ? 1 : 0,
+        a: i.assignedTo,
+        ro: i.routeOrder || 0
+      }))
+  };
+
+  if (includeMainTargets) {
+    payload.mt = state.mainTargets.filter(m => m.checked).map(m => m.id);
+  }
+
+  const encodedData = utf8ToBase64(JSON.stringify(payload));
+  const baseUrl = window.location.href.split('#')[0];
+  return `${baseUrl}#share=${encodedData}`;
+}
+
+function generateTextSummary() {
+  const includeMainTargets = document.getElementById('shareIncludeMainTargets').checked;
+  let text = `【GTA 科茲中心任務分配表】\n`;
+  let totalTeamVal = 0;
+
+  for (let p = 0; p < state.playerCount; p++) {
+    const assigned = state.items.filter(i => i.assignedTo === p);
+    const slots = calculatePlayerSlots(p);
+    const val = calculatePlayerValue(p);
+    totalTeamVal += val;
+
+    text += `\n👤 ${state.playerNames[p]} (${slots}/10格, 預估 $${val.toLocaleString()}):\n`;
+    if (assigned.length === 0) {
+      text += `  - (無分配)\n`;
+    } else {
+      assigned.sort((a, b) => {
+        const orderA = a.routeOrder || 0;
+        const orderB = b.routeOrder || 0;
+        if (orderA !== orderB) return orderA - orderB;
+        return a.location.localeCompare(b.location);
+      });
+      assigned.forEach((it, idx) => {
+        const truckPrice = (it.id === 't1') ? '115k~135k' : `$${(parseInt(it.price, 10) || 0).toLocaleString()}`;
+        text += `  ${idx + 1}. [${it.location}] ${it.name} (${it.slots}格) - ${truckPrice}\n`;
+      });
+    }
+  }
+
+  if (includeMainTargets) {
+    const checkedTargets = state.mainTargets.filter(m => m.checked);
+    if (checkedTargets.length > 0) {
+      text += `\n🖼️ 【保留的主要目標】:\n`;
+      checkedTargets.forEach(mt => {
+         text += `  - ${mt.nameZh} (${mt.nameEn})\n`;
+      });
+    }
+  }
+
+  text += `\n💰 全隊拿取總預估價值: $${totalTeamVal.toLocaleString()}`;
+  return text;
+}
+
+function openShareModal() {
+  document.getElementById('shareIncludeMainTargets').checked = true;
+  updateShareContent();
+  document.getElementById('shareModal').style.display = 'flex';
+}
+
+function closeShareModal(event) {
+  if (event && event.target !== event.currentTarget) return;
+  document.getElementById('shareModal').style.display = 'none';
+}
+
+function copyShareUrl() {
+  const input = document.getElementById('shareUrlInput');
+  input.select();
+  navigator.clipboard.writeText(input.value).then(() => {
+    alert('✅ 已複製分享連結！\n傳給同個 Wi-Fi 下的隊友，點擊即可查看整份分配表。');
+  }).catch(() => {
+    document.execCommand('copy');
+    alert('✅ 已複製分享連結！');
+  });
+}
+
+function copyShareText() {
+  const summary = document.getElementById('shareTextSummary');
+  summary.select();
+  navigator.clipboard.writeText(summary.value).then(() => {
+    alert('✅ 已複製文字速報！\n可直接貼到 Discord 或 LINE 群組中查看。');
+  }).catch(() => {
+    document.execCommand('copy');
+    alert('✅ 已複製文字速報！');
+  });
+}
+
+function checkUrlHashForSharedData() {
+  const hash = window.location.hash;
+  if (hash && hash.startsWith('#share=')) {
+    try {
+      const base64Data = hash.replace('#share=', '');
+      const jsonStr = base64ToUtf8(base64Data);
+      const data = JSON.parse(jsonStr);
+
+      if (data.c) state.playerCount = data.c;
+      if (data.n && Array.isArray(data.n)) {
+        data.n.forEach((name, i) => {
+          if (state.playerNames[i]) state.playerNames[i] = name;
+        });
+      }
+
+      state.items.forEach(it => {
+        it.price = '';
+        it.isTarget = false;
+        it.assignedTo = null;
+        it.routeOrder = 0;
+      });
+
+      if (data.items && Array.isArray(data.items)) {
+        data.items.forEach(shareItem => {
+          const target = state.items.find(i => i.id === shareItem.id);
+          if (target) {
+            target.price = shareItem.pr;
+            target.isTarget = shareItem.t === 1;
+            target.assignedTo = shareItem.a;
+            target.routeOrder = shareItem.ro || 0;
+          }
+        });
+      }
+
+      if (data.mt && Array.isArray(data.mt)) {
+        state.mainTargets.forEach(mt => {
+          mt.checked = data.mt.includes(mt.id);
+        });
+      }
+
+      saveState();
+      document.getElementById('sharedNoticeBanner').style.display = 'flex';
+      
+      const hasAssignments = state.items.some(i => i.assignedTo !== null);
+      if (hasAssignments) {
+        switchTab('route');
+      }
+    } catch(err) {
+      console.error('Failed to parse share url data:', err);
+    }
+  }
+}
+
+function dismissSharedBanner() {
+  document.getElementById('sharedNoticeBanner').style.display = 'none';
+  history.replaceState(null, document.title, window.location.pathname + window.location.search);
+}
+
+// ----------------------------------------------------
+// 任務平面圖與畫布路線功能 
+// ----------------------------------------------------
+let drawTool = 'line'; 
+let drawColor = PLAYER_COLORS[0]; 
+let isDrawing = false;
+let currentPath = [];
+
+function switchMapIndex(idx) {
+  activeMapIdx = idx;
+  const buttons = document.getElementById('mapSubTabs').querySelectorAll('button');
+  buttons.forEach((btn, i) => btn.classList.toggle('active', i === idx));
+  
+  // 切換圖紙時，重設縮放比例為 100%
+  document.getElementById('mapZoomSlider').value = 100;
+  updateMapZoom();
+  
+  renderMap();
+}
+
+function updateMapColorPicker() {
+  const container = document.getElementById('colorPickerUI');
+  container.innerHTML = '';
+  for (let i = 0; i < state.playerCount; i++) {
+    const c = PLAYER_COLORS[i];
+    const div = document.createElement('div');
+    div.className = 'color-circle';
+    div.style.background = c;
+    if (c === drawColor && drawTool !== 'eraser') {
+       div.classList.add('active');
+    }
+    div.onclick = () => {
+      if (drawTool === 'eraser' || drawTool === 'pan') setDrawTool('line');
+      document.querySelectorAll('.color-circle').forEach(el => el.classList.remove('active'));
+      div.classList.add('active');
+      drawColor = c;
+    };
+    container.appendChild(div);
+  }
+}
+
+function setDrawTool(tool) {
+  drawTool = tool;
+  document.getElementById('toolLineBtn').classList.toggle('active', tool === 'line');
+  document.getElementById('toolMarkerBtn').classList.toggle('active', tool === 'marker');
+  document.getElementById('toolPanBtn').classList.toggle('active', tool === 'pan');
+  
+  const eraserBtn = document.getElementById('toolEraserBtn');
+  const colorPicker = document.getElementById('colorPickerUI');
+  const canvas = document.getElementById('drawingCanvas');
+  
+  if (tool === 'eraser') {
+    eraserBtn.classList.add('active', 'eraser-active');
+    colorPicker.style.opacity = '0.3';
+    colorPicker.style.pointerEvents = 'none';
+    canvas.style.cursor = 'crosshair';
+  } else {
+    eraserBtn.classList.remove('active', 'eraser-active');
+    colorPicker.style.opacity = '1';
+    colorPicker.style.pointerEvents = 'auto';
+    canvas.style.cursor = tool === 'pan' ? 'grab' : 'crosshair';
+  }
+}
+
+function updateMapZoom() {
+  const zoomVal = document.getElementById('mapZoomSlider').value;
+  document.getElementById('mapZoomLabel').textContent = zoomVal + '%';
+  const mapInner = document.querySelector('.map-inner');
+  mapInner.style.width = zoomVal + '%';
+  
+  // 若圖片已載入，重新對齊 Canvas 解析度與重繪以保持清晰
+  const imgEl = document.getElementById('mapImageEl');
+  if (imgEl.style.display !== 'none' && imgEl.clientWidth > 0) {
+    const canvas = document.getElementById('drawingCanvas');
+    canvas.width = imgEl.clientWidth;
+    canvas.height = imgEl.clientHeight;
+    redrawCanvas();
+  }
+}
+
+function renderMap() {
+  const imgEl = document.getElementById('mapImageEl');
+  const canvas = document.getElementById('drawingCanvas');
+  const noMapText = document.getElementById('noMapText');
+  
+  let currentExtIdx = 0;
+  // 支援多種圖片格式自動偵測
+  const exts = MAP_FILES[activeMapIdx];
+
+  const tryLoad = () => {
+    if (currentExtIdx >= exts.length) {
+      imgEl.style.display = 'none';
+      noMapText.style.display = 'block';
+      noMapText.innerHTML = `找不到圖片。<br>請將平面圖命名為 <b>map${activeMapIdx+1}.jpg</b> 或 <b>map${activeMapIdx+1}.png</b><br>並與此網頁放在同一個資料夾。`;
+      
+      canvas.width = document.getElementById('mapContainer').clientWidth;
+      canvas.height = document.getElementById('mapContainer').clientHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      return;
+    }
+    imgEl.src = exts[currentExtIdx];
+  };
+
+  imgEl.onerror = () => {
+    currentExtIdx++;
+    tryLoad();
+  };
+
+  imgEl.onload = () => {
+    imgEl.style.display = 'block';
+    noMapText.style.display = 'none';
+    
+    // 將畫布解析度與圖片實際載入大小對齊
+    canvas.width = imgEl.clientWidth;
+    canvas.height = imgEl.clientHeight;
+    redrawCanvas();
+  };
+
+  tryLoad();
+}
+
+window.addEventListener('resize', () => {
+  if (document.getElementById('mapView').style.display !== 'none') {
+    renderMap();
+  }
+});
+
+const canvas = document.getElementById('drawingCanvas');
+const ctx = canvas.getContext('2d');
+
+function getPointerPos(e) {
+  const rect = canvas.getBoundingClientRect();
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+  return {
+    nx: (clientX - rect.left) / rect.width,
+    ny: (clientY - rect.top) / rect.height
+  };
+}
+
+canvas.addEventListener('mousedown', startAction);
+canvas.addEventListener('mousemove', moveAction);
+canvas.addEventListener('mouseup', endAction);
+canvas.addEventListener('mouseleave', endAction);
+
+// 觸控事件處理：如果是拖曳模式(pan)，不阻擋瀏覽器預設捲動
+canvas.addEventListener('touchstart', (e) => { 
+  if (drawTool !== 'pan') e.preventDefault(); 
+  startAction(e); 
+}, {passive: false});
+
+canvas.addEventListener('touchmove', (e) => { 
+  if (drawTool !== 'pan') e.preventDefault(); 
+  moveAction(e); 
+}, {passive: false});
+
+canvas.addEventListener('touchend', endAction);
+
+// 計算點到線段的距離 (用於橡皮擦)
+function distToSegment(px, py, vx, vy, wx, wy) {
+  const l2 = (vx - wx)**2 + (vy - wy)**2;
+  if (l2 === 0) return Math.hypot(px - vx, py - vy);
+  let t = ((px - vx) * (wx - vx) + (py - vy) * (wy - vy)) / l2;
+  t = Math.max(0, Math.min(1, t));
+  const projX = vx + t * (wx - vx);
+  const projY = vy + t * (wy - vy);
+  return Math.hypot(px - projX, py - projY);
+}
+
+// 橡皮擦核心邏輯
+function eraseAt(nx, ny) {
+  const cw = canvas.width;
+  const ch = canvas.height;
+  const x = nx * cw;
+  const y = ny * ch;
+  const drawings = mapDrawState[activeMapIdx].drawings;
+  
+  for (let i = drawings.length - 1; i >= 0; i--) {
+    const d = drawings[i];
+    let hit = false;
+    
+    if (d.type === 'marker') {
+      const mx = d.nx * cw;
+      const my = d.ny * ch;
+      if (Math.hypot(mx - x, my - y) < 20) { 
+        hit = true;
+        // 自動重新編號邏輯
+        const deletedNum = parseInt(d.text);
+        mapDrawState[activeMapIdx].markerCounter--;
+        drawings.forEach(other => {
+          if (other.type === 'marker' && parseInt(other.text) > deletedNum) {
+            other.text = (parseInt(other.text) - 1).toString();
+          }
+        });
+      }
+    } else if (d.type === 'line') {
+      for (let j = 0; j < d.points.length - 1; j++) {
+        const p1x = d.points[j].nx * cw;
+        const p1y = d.points[j].ny * ch;
+        const p2x = d.points[j+1].nx * cw;
+        const p2y = d.points[j+1].ny * ch;
+        if (distToSegment(x, y, p1x, p1y, p2x, p2y) < 15) { 
+          hit = true;
+          break;
+        }
+      }
+    }
+    
+    if (hit) {
+      drawings.splice(i, 1);
+      saveMapDrawState();
+      redrawCanvas();
+      break; 
+    }
+  }
+}
+
+function startAction(e) {
+  if (document.getElementById('mapImageEl').style.display === 'none') return; 
+  if (drawTool === 'pan') return; 
+
+  isDrawing = true;
+  const pos = getPointerPos(e);
+
+  if (drawTool === 'line') {
+    currentPath = [pos];
+    mapDrawState[activeMapIdx].drawings.push({
+      type: 'line',
+      color: drawColor,
+      points: [...currentPath]
+    });
+  } else if (drawTool === 'marker') {
+    const num = mapDrawState[activeMapIdx].markerCounter++;
+    mapDrawState[activeMapIdx].drawings.push({
+      type: 'marker',
+      text: num.toString(),
+      color: drawColor,
+      nx: pos.nx,
+      ny: pos.ny
+    });
+    saveMapDrawState();
+    redrawCanvas();
+    isDrawing = false; 
+  } else if (drawTool === 'eraser') {
+    eraseAt(pos.nx, pos.ny);
+  }
+}
+
+function moveAction(e) {
+  if (!isDrawing) return;
+  const pos = getPointerPos(e);
+  
+  if (drawTool === 'line') {
+    const currentDrawings = mapDrawState[activeMapIdx].drawings;
+    const currentLine = currentDrawings[currentDrawings.length - 1];
+    currentLine.points.push(pos);
+    redrawCanvas();
+  } else if (drawTool === 'eraser') {
+    eraseAt(pos.nx, pos.ny); 
+  }
+}
+
+function endAction(e) {
+  if (!isDrawing) return;
+  isDrawing = false;
+  if (drawTool === 'line') {
+    saveMapDrawState();
+  }
+}
+
+function redrawCanvas() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const drawings = mapDrawState[activeMapIdx].drawings;
+  
+  drawings.forEach(d => {
+    if (d.type === 'line' && d.points.length > 0) {
+      ctx.beginPath();
+      ctx.moveTo(d.points[0].nx * canvas.width, d.points[0].ny * canvas.height);
+      for (let i = 1; i < d.points.length; i++) {
+        ctx.lineTo(d.points[i].nx * canvas.width, d.points[i].ny * canvas.height);
+      }
+      ctx.strokeStyle = d.color;
+      ctx.lineWidth = 3;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.stroke();
+    } else if (d.type === 'marker') {
+      const x = d.nx * canvas.width;
+      const y = d.ny * canvas.height;
+      const radius = 12;
+      
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, 2 * Math.PI);
+      ctx.fillStyle = d.color;
+      ctx.fill();
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      
+      ctx.fillStyle = '#000';
+      ctx.font = 'bold 14px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(d.text, x, y + 1);
+    }
+  });
+}
+
+function undoDraw() {
+  const currentDrawings = mapDrawState[activeMapIdx].drawings;
+  if (currentDrawings.length > 0) {
+    const removed = currentDrawings.pop();
+    if (removed.type === 'marker' && removed.text == (mapDrawState[activeMapIdx].markerCounter - 1)) {
+      mapDrawState[activeMapIdx].markerCounter--;
+    }
+    saveMapDrawState();
+    redrawCanvas();
+  }
+}
+
+function clearDraw() {
+  if (confirm('確定要清空這張平面圖上的所有路線與標記嗎？')) {
+    mapDrawState[activeMapIdx].drawings = [];
+    mapDrawState[activeMapIdx].markerCounter = 1;
+    saveMapDrawState();
+    redrawCanvas();
+  }
 }
 
 window.addEventListener('DOMContentLoaded', () => {
