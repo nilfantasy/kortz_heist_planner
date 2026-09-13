@@ -4,12 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>GTA 科茲中心任務分配系統</title>
+  
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon/favicon-96x96.png" sizes="96x96" />
   <link rel="icon" type="image/svg+xml" href="favicon/favicon.svg" />
   <link rel="shortcut icon" href="favicon/favicon.ico" />
   <link rel="apple-touch-icon" sizes="180x180" href="favicon/apple-touch-icon.png" />
   <link rel="manifest" href="favicon/site.webmanifest" />
+
   <style>
     :root {
       --bg-main: #0f141c;
@@ -824,7 +826,7 @@
 <div class="container">
   <header>
     <div class="title-area">
-      <h1>GTA 科茲中心任務分配工具 <span>v1.23 穩定版</span></h1>
+      <h1>GTA 科茲中心任務分配工具 <span>v1.24 穩定版</span></h1>
     </div>
     <div class="nav-buttons">
       <div style="display: flex; align-items: center; gap: 6px;">
@@ -1028,9 +1030,10 @@ const C_PURPLE = '#c084fc';
 const C_GREEN = '#4ade80';  
 const C_DEFAULT = '#e2e8f0'; 
 
+// 定義玩家專屬顏色
 const PLAYER_COLORS = ['#00d2ff', '#10b981', '#f59e0b', '#8b5cf6'];
 
-// 移除 p11 (長官價值) 後的最新 DEFAULT_ITEMS 清單
+// DEFAULT_ITEMS 清單
 const DEFAULT_ITEMS = [
   { id: 'p1', name: '上行下效', category: '畫作', location: '畫廊', slots: 5, color: C_BLUE },
   { id: 'p2', name: '依線行事', category: '畫作', location: '畫廊', slots: 5, color: C_BLUE },
@@ -1131,7 +1134,6 @@ function initState() {
         state.playerNames = ['玩家 1', '玩家 2', '玩家 3', '玩家 4'];
       }
       
-      // 【自動清除廢棄物品】確保本地端儲存的物品清單與最新預設清單同步 (過濾掉被刪除的 p11)
       const validItemIds = DEFAULT_ITEMS.map(i => i.id);
       
       state.items = state.items
@@ -1750,7 +1752,7 @@ function initDragAndDrop() {
 }
 
 // ----------------------------------------------------
-// 分享功能核心模組 (v1.23: Discord Markdown 優化)
+// 分享功能核心模組
 // ----------------------------------------------------
 function utf8ToBase64(str) {
   return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (match, p1) => String.fromCharCode('0x' + p1)));
@@ -2258,7 +2260,7 @@ function endAction(e) {
     isPanning = false;
     const mapContainer = document.getElementById('mapContainer');
     mapContainer.style.cursor = 'grab';
-    canvas.style.cursor = 'crosshair'; // 修復：結束拖曳後如果本來是十字游標就恢復
+    canvas.style.cursor = 'crosshair';
   }
 
   if (!isDrawing) return;
