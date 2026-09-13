@@ -327,6 +327,8 @@
 
     .table-responsive {
       overflow-x: auto;
+      overflow-y: auto;
+      max-height: 60vh; 
       background: var(--bg-card);
       border: 1px solid var(--border-color);
       border-radius: 10px;
@@ -340,11 +342,14 @@
     }
 
     th {
+      position: sticky;
+      top: 0;
+      z-index: 5;
       background: #1e2838;
       color: var(--text-muted);
       padding: 10px 12px;
       font-weight: 600;
-      border-bottom: 1px solid var(--border-color);
+      border-bottom: 2px solid var(--accent-cyan); 
       white-space: nowrap;
     }
     
@@ -712,6 +717,11 @@
       border-color: var(--accent-red);
       color: #fca5a5;
     }
+    .tool-btn.lock-active {
+      background: rgba(245, 158, 11, 0.2);
+      border-color: var(--accent-yellow);
+      color: var(--gold);
+    }
 
     .color-picker {
       display: flex;
@@ -734,7 +744,6 @@
       transform: scale(1.1);
     }
 
-    /* 確保放大時能出現卷軸，且高度加大給地圖 */
     .map-container-wrapper {
       position: relative;
       width: 100%;
@@ -811,7 +820,7 @@
 <div class="container">
   <header>
     <div class="title-area">
-      <h1>GTA 科茲中心任務分配工具 <span>v1.21 穩定版</span></h1>
+      <h1>GTA 科茲中心任務分配工具 <span>v1.23 穩定版</span></h1>
     </div>
     <div class="nav-buttons">
       <div style="display: flex; align-items: center; gap: 6px;">
@@ -941,27 +950,27 @@
 
     <div class="map-toolbar">
       <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-        <button class="tool-btn" id="toolPanBtn" onclick="setDrawTool('pan')" title="使用手指或滑鼠移動地圖">✋ 拖曳</button>
-        <button class="tool-btn active" id="toolLineBtn" onclick="setDrawTool('line')">✏️ 畫路線</button>
-        <button class="tool-btn" id="toolMarkerBtn" onclick="setDrawTool('marker')">🔢 標記</button>
-        <button class="tool-btn" id="toolEraserBtn" onclick="setDrawTool('eraser')" title="擦除線條或刪除標記點(自動重新編號)">🧽 橡皮擦</button>
+        <button class="tool-btn" id="toolLockBtn" onclick="toggleMapLock()">🔓 編輯模式</button>
+        <div style="width: 1px; background: var(--border-color); margin: 0 4px;"></div>
+        
+        <button class="tool-btn draw-control" id="toolPanBtn" onclick="setDrawTool('pan')" title="使用手指或滑鼠移動地圖">✋ 拖曳</button>
+        <button class="tool-btn draw-control active" id="toolLineBtn" onclick="setDrawTool('line')">✏️ 畫路線</button>
+        <button class="tool-btn draw-control" id="toolMarkerBtn" onclick="setDrawTool('marker')">🔢 標記</button>
+        <button class="tool-btn draw-control" id="toolEraserBtn" onclick="setDrawTool('eraser')" title="擦除線條或刪除標記點(自動重新編號)">🧽 橡皮擦</button>
       </div>
 
       <div style="display: flex; align-items: center; gap: 6px; border-left: 1px solid var(--border-color); padding-left: 10px; margin-left: 4px;">
         <span style="font-size: 0.85rem; color: var(--text-muted);">🔍</span>
-        <!-- 放大上限調整為 200 -->
         <input type="range" id="mapZoomSlider" min="50" max="200" value="100" oninput="updateMapZoom()" style="width: 80px; accent-color: var(--accent-cyan);">
         <span id="mapZoomLabel" style="font-size: 0.8rem; color: var(--text-main); min-width: 35px;">100%</span>
       </div>
 
-      <div class="color-picker" id="colorPickerUI">
-        <!-- 顏色選擇器由 JS 產生 -->
-      </div>
+      <div class="color-picker draw-control" id="colorPickerUI"></div>
       
       <div style="flex: 1;"></div>
       <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-        <button class="btn" style="background: #374151;" onclick="undoDraw()">↩️ 復原一筆</button>
-        <button class="btn btn-danger" onclick="clearDraw()">🗑️ 清空路線</button>
+        <button class="btn draw-control" style="background: #374151;" onclick="undoDraw()">↩️ 復原一筆</button>
+        <button class="btn btn-danger draw-control" onclick="clearDraw()">🗑️ 清空路線</button>
       </div>
     </div>
 
@@ -1000,7 +1009,7 @@
       </span>
     </div>
     <div class="share-section">
-      <label>💬 文字速報（適合直接貼到 Discord / LINE）</label>
+      <label>💬 文字速報（支援 Discord Markdown 語法）</label>
       <textarea id="shareTextSummary" class="share-textarea" readonly></textarea>
       <button class="btn" style="width: 100%; justify-content: center;" onclick="copyShareText()">複製文字速報</button>
     </div>
@@ -1015,9 +1024,9 @@ const C_PURPLE = '#c084fc';
 const C_GREEN = '#4ade80';  
 const C_DEFAULT = '#e2e8f0'; 
 
-// 定義玩家專屬顏色
 const PLAYER_COLORS = ['#00d2ff', '#10b981', '#f59e0b', '#8b5cf6'];
 
+// 移除 p11 (長官價值) 後的最新 DEFAULT_ITEMS 清單
 const DEFAULT_ITEMS = [
   { id: 'p1', name: '上行下效', category: '畫作', location: '畫廊', slots: 5, color: C_BLUE },
   { id: 'p2', name: '依線行事', category: '畫作', location: '畫廊', slots: 5, color: C_BLUE },
@@ -1029,7 +1038,6 @@ const DEFAULT_ITEMS = [
   { id: 'p8', name: '滾', category: '畫作', location: '2F', slots: 5, color: C_DEFAULT },
   { id: 'p9', name: '女公爵', category: '畫作', location: '1F', slots: 5, color: C_DEFAULT },
   { id: 'p10', name: '長官', category: '畫作', location: '1F', slots: 5, color: C_DEFAULT },
-  { id: 'p11', name: '長官價值', category: '畫作', location: '1F', slots: 5, color: C_DEFAULT },
   { id: 'p12', name: '看到我嗎', category: '畫作', location: '1F', slots: 5, color: C_DEFAULT },
   { id: 'p13', name: '惡霸狂犬', category: '畫作', location: '1F', slots: 5, color: C_DEFAULT },
   { id: 'p14', name: '解釋一下', category: '畫作', location: '1F', slots: 5, color: C_DEFAULT },
@@ -1098,7 +1106,6 @@ let state = {
 let currentSortKey = 'default';
 let currentSortAsc = true;
 
-// 支援多種圖片格式自動偵測
 const MAP_FILES = [
   ['map1.jpg', 'map1.png', 'map1.jpeg'],
   ['map2.jpg', 'map2.png', 'map2.jpeg'],
@@ -1119,11 +1126,18 @@ function initState() {
       if (!state.playerNames || state.playerNames.length < 4) {
         state.playerNames = ['玩家 1', '玩家 2', '玩家 3', '玩家 4'];
       }
-      state.items = state.items.map((item, index) => ({
-         ...item,
-         originalIndex: item.originalIndex !== undefined ? item.originalIndex : index,
-         routeOrder: item.routeOrder || 0
-      }));
+      
+      // 【自動清除廢棄物品】確保本地端儲存的物品清單與最新預設清單同步 (過濾掉被刪除的 p11)
+      const validItemIds = DEFAULT_ITEMS.map(i => i.id);
+      
+      state.items = state.items
+        .filter(item => validItemIds.includes(item.id))
+        .map((item, index) => ({
+           ...item,
+           originalIndex: item.originalIndex !== undefined ? item.originalIndex : index,
+           routeOrder: item.routeOrder || 0
+        }));
+        
       if (!state.mainTargets || state.mainTargets.length === 0 || !state.mainTargets[0].nameZh) {
         state.mainTargets = DEFAULT_MAIN_TARGETS.map(mt => ({ ...mt, checked: false }));
       }
@@ -1319,7 +1333,6 @@ function resetMission() {
 function switchTab(tab) {
   const isMap = tab === 'map';
   
-  // 隱藏上方空間以極大化地圖視野
   document.getElementById('playersContainer').style.display = isMap ? 'none' : 'grid';
   document.getElementById('teamSummaryBar').style.display = isMap ? 'none' : 'flex';
 
@@ -1733,7 +1746,7 @@ function initDragAndDrop() {
 }
 
 // ----------------------------------------------------
-// 分享功能核心模組 
+// 分享功能核心模組 (v1.23: Discord Markdown 優化)
 // ----------------------------------------------------
 function utf8ToBase64(str) {
   return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (match, p1) => String.fromCharCode('0x' + p1)));
@@ -1775,7 +1788,7 @@ function generateShareUrl() {
 
 function generateTextSummary() {
   const includeMainTargets = document.getElementById('shareIncludeMainTargets').checked;
-  let text = `【GTA 科茲中心任務分配表】\n`;
+  let text = `**【GTA 科茲中心任務分配表】**\n`;
   let totalTeamVal = 0;
 
   for (let p = 0; p < state.playerCount; p++) {
@@ -1784,7 +1797,7 @@ function generateTextSummary() {
     const val = calculatePlayerValue(p);
     totalTeamVal += val;
 
-    text += `\n👤 ${state.playerNames[p]} (${slots}/10格, 預估 $${val.toLocaleString()}):\n`;
+    text += `\n👤 **${state.playerNames[p]}** (${slots}/10格, 預估 **$${val.toLocaleString()}**):\n`;
     if (assigned.length === 0) {
       text += `  - (無分配)\n`;
     } else {
@@ -1796,7 +1809,12 @@ function generateTextSummary() {
       });
       assigned.forEach((it, idx) => {
         const truckPrice = (it.id === 't1') ? '115k~135k' : `$${(parseInt(it.price, 10) || 0).toLocaleString()}`;
-        text += `  ${idx + 1}. [${it.location}] ${it.name} (${it.slots}格) - ${truckPrice}\n`;
+        
+        const unitPrice = it.slots > 0 ? (parseInt(it.price, 10) || 0) / it.slots : 0;
+        const isHighValue = unitPrice >= 30000 || it.id === 't1';
+        const nameStr = isHighValue ? `**${it.name}**` : it.name;
+        
+        text += `  ${idx + 1}. [${it.location}] ${nameStr} (${it.slots}格) - ${truckPrice}\n`;
       });
     }
   }
@@ -1804,14 +1822,14 @@ function generateTextSummary() {
   if (includeMainTargets) {
     const checkedTargets = state.mainTargets.filter(m => m.checked);
     if (checkedTargets.length > 0) {
-      text += `\n🖼️ 【保留的主要目標】:\n`;
+      text += `\n🖼️ **【保留的主要目標】**:\n`;
       checkedTargets.forEach(mt => {
-         text += `  - ${mt.nameZh} (${mt.nameEn})\n`;
+         text += `  - **${mt.nameZh}** (${mt.nameEn})\n`;
       });
     }
   }
 
-  text += `\n💰 全隊拿取總預估價值: $${totalTeamVal.toLocaleString()}`;
+  text += `\n💰 全隊拿取總預估價值: **$${totalTeamVal.toLocaleString()}**`;
   return text;
 }
 
@@ -1841,7 +1859,7 @@ function copyShareText() {
   const summary = document.getElementById('shareTextSummary');
   summary.select();
   navigator.clipboard.writeText(summary.value).then(() => {
-    alert('✅ 已複製文字速報！\n可直接貼到 Discord 或 LINE 群組中查看。');
+    alert('✅ 已複製文字速報！\n可直接貼到 Discord 或 LINE 群組中查看，排版會自動套用加粗效果喔。');
   }).catch(() => {
     document.execCommand('copy');
     alert('✅ 已複製文字速報！');
@@ -1914,19 +1932,50 @@ let drawColor = PLAYER_COLORS[0];
 let isDrawing = false;
 let currentPath = [];
 
-// 拖曳地圖狀態
 let isPanning = false;
 let panStartX = 0;
 let panStartY = 0;
 let panScrollLeft = 0;
 let panScrollTop = 0;
 
+let isMapLocked = false;
+
+function toggleMapLock() {
+  isMapLocked = !isMapLocked;
+  const lockBtn = document.getElementById('toolLockBtn');
+  const canvas = document.getElementById('drawingCanvas');
+  const controls = document.querySelectorAll('.map-toolbar .draw-control');
+  
+  if (isMapLocked) {
+    lockBtn.innerHTML = '🔒 已鎖定 (防誤觸)';
+    lockBtn.classList.add('lock-active');
+    canvas.style.pointerEvents = 'none';
+    
+    controls.forEach(el => {
+      el.style.opacity = '0.4';
+      el.style.pointerEvents = 'none';
+    });
+  } else {
+    lockBtn.innerHTML = '🔓 編輯模式';
+    lockBtn.classList.remove('lock-active');
+    canvas.style.pointerEvents = 'auto';
+    
+    controls.forEach(el => {
+      el.style.opacity = '1';
+      el.style.pointerEvents = 'auto';
+    });
+    if (drawTool === 'eraser') {
+      document.getElementById('colorPickerUI').style.opacity = '0.3';
+      document.getElementById('colorPickerUI').style.pointerEvents = 'none';
+    }
+  }
+}
+
 function switchMapIndex(idx) {
   activeMapIdx = idx;
   const buttons = document.getElementById('mapSubTabs').querySelectorAll('button');
   buttons.forEach((btn, i) => btn.classList.toggle('active', i === idx));
   
-  // 切換圖紙時，重設縮放比例為 100%
   document.getElementById('mapZoomSlider').value = 100;
   updateMapZoom();
   
@@ -1955,6 +2004,8 @@ function updateMapColorPicker() {
 }
 
 function setDrawTool(tool) {
+  if (isMapLocked) return; 
+
   drawTool = tool;
   document.getElementById('toolLineBtn').classList.toggle('active', tool === 'line');
   document.getElementById('toolMarkerBtn').classList.toggle('active', tool === 'marker');
@@ -1986,7 +2037,6 @@ function updateMapZoom() {
   const mapInner = document.querySelector('.map-inner');
   mapInner.style.width = zoomVal + '%';
   
-  // 若圖片已載入，重新對齊 Canvas 解析度與重繪以保持清晰
   const imgEl = document.getElementById('mapImageEl');
   if (imgEl.style.display !== 'none' && imgEl.clientWidth > 0) {
     const canvas = document.getElementById('drawingCanvas');
@@ -2060,13 +2110,14 @@ canvas.addEventListener('mousemove', moveAction);
 canvas.addEventListener('mouseup', endAction);
 canvas.addEventListener('mouseleave', endAction);
 
-// 觸控事件處理：如果是拖曳模式(pan)，不阻擋瀏覽器預設捲動
 canvas.addEventListener('touchstart', (e) => { 
+  if (isMapLocked) return;
   if (drawTool !== 'pan') e.preventDefault(); 
   startAction(e); 
 }, {passive: false});
 
 canvas.addEventListener('touchmove', (e) => { 
+  if (isMapLocked) return;
   if (drawTool !== 'pan') e.preventDefault(); 
   moveAction(e); 
 }, {passive: false});
@@ -2130,7 +2181,7 @@ function eraseAt(nx, ny) {
 }
 
 function startAction(e) {
-  if (document.getElementById('mapImageEl').style.display === 'none') return; 
+  if (isMapLocked || document.getElementById('mapImageEl').style.display === 'none') return; 
   
   if (drawTool === 'pan') {
     isPanning = true;
@@ -2172,6 +2223,8 @@ function startAction(e) {
 }
 
 function moveAction(e) {
+  if (isMapLocked) return;
+
   if (isPanning && drawTool === 'pan') {
     const mapContainer = document.getElementById('mapContainer');
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
@@ -2195,11 +2248,13 @@ function moveAction(e) {
 }
 
 function endAction(e) {
+  if (isMapLocked) return;
+
   if (isPanning) {
     isPanning = false;
     const mapContainer = document.getElementById('mapContainer');
     mapContainer.style.cursor = 'grab';
-    canvas.style.cursor = 'grab';
+    canvas.style.cursor = 'crosshair'; // 修復：結束拖曳後如果本來是十字游標就恢復
   }
 
   if (!isDrawing) return;
@@ -2248,6 +2303,7 @@ function redrawCanvas() {
 }
 
 function undoDraw() {
+  if (isMapLocked) return;
   const currentDrawings = mapDrawState[activeMapIdx].drawings;
   if (currentDrawings.length > 0) {
     const removed = currentDrawings.pop();
@@ -2260,6 +2316,7 @@ function undoDraw() {
 }
 
 function clearDraw() {
+  if (isMapLocked) return;
   if (confirm('確定要清空這張平面圖上的所有路線與標記嗎？')) {
     mapDrawState[activeMapIdx].drawings = [];
     mapDrawState[activeMapIdx].markerCounter = 1;
