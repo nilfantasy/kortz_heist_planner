@@ -333,8 +333,6 @@
 
     .table-responsive {
       overflow-x: auto;
-      overflow-y: auto;
-      max-height: 60vh; 
       background: var(--bg-card);
       border: 1px solid var(--border-color);
       border-radius: 10px;
@@ -348,14 +346,11 @@
     }
 
     th {
-      position: sticky;
-      top: 0;
-      z-index: 5;
       background: #1e2838;
       color: var(--text-muted);
       padding: 10px 12px;
       font-weight: 600;
-      border-bottom: 2px solid var(--accent-cyan); 
+      border-bottom: 1px solid var(--border-color);
       white-space: nowrap;
     }
     
@@ -663,7 +658,7 @@
       margin-bottom: 8px;
     }
 
-    /* 任務平面圖專屬樣式 */
+    /* 任務平面圖專屬樣式 (v1.29: 徹底移除內部捲軸，自然向下延伸) */
     .map-subtabs {
       display: flex;
       gap: 8px;
@@ -750,15 +745,22 @@
       transform: scale(1.1);
     }
 
+    /* 移除固定高度，讓畫布自然長高；同時隱藏所有的醜陋捲軸 */
     .map-container-wrapper {
       position: relative;
       width: 100%;
-      height: calc(100vh - 220px); 
       background: #0d1117;
       border: 1px dashed var(--border-color);
       border-radius: 8px;
       overflow: auto; 
       text-align: center; 
+      
+      /* 隱藏捲軸 */
+      -ms-overflow-style: none;  
+      scrollbar-width: none; 
+    }
+    .map-container-wrapper::-webkit-scrollbar {
+      display: none;
     }
     
     .map-inner {
@@ -815,9 +817,6 @@
       .team-summary-bar {
         justify-content: flex-start;
       }
-      .map-container-wrapper {
-        height: 60vh; 
-      }
     }
   </style>
 </head>
@@ -826,7 +825,7 @@
 <div class="container">
   <header>
     <div class="title-area">
-      <h1>GTA 科茲中心任務分配工具 <span>v1.24 穩定版</span></h1>
+      <h1>GTA 科茲中心任務分配工具 <span>v1.29 穩定版</span></h1>
     </div>
     <div class="nav-buttons">
       <div style="display: flex; align-items: center; gap: 6px;">
@@ -949,9 +948,9 @@
   <!-- 分頁四：任務平面圖與路線規劃 -->
   <div id="mapView" style="display: none;">
     <div class="map-subtabs" id="mapSubTabs">
-      <button class="active" onclick="switchMapIndex(0)">圖紙 1 (map1)</button>
-      <button onclick="switchMapIndex(1)">圖紙 2 (map2)</button>
-      <button onclick="switchMapIndex(2)">圖紙 3 (map3)</button>
+      <button class="active" onclick="switchMapIndex(0)">1F</button>
+      <button onclick="switchMapIndex(1)">2F</button>
+      <button onclick="switchMapIndex(2)">LG</button>
     </div>
 
     <div class="map-toolbar">
@@ -959,10 +958,11 @@
         <button class="tool-btn" id="toolLockBtn" onclick="toggleMapLock()">🔓 編輯模式</button>
         <div style="width: 1px; background: var(--border-color); margin: 0 4px;"></div>
         
-        <button class="tool-btn draw-control" id="toolPanBtn" onclick="setDrawTool('pan')" title="使用手指或滑鼠移動地圖">✋ 拖曳</button>
+        <button class="tool-btn draw-control" id="toolMoveBtn" onclick="setDrawTool('move')" title="點擊空白處移動地圖；點擊標記或標籤可將其拖曳移動">↖️ 拖曳/移動</button>
         <button class="tool-btn draw-control active" id="toolLineBtn" onclick="setDrawTool('line')">✏️ 畫路線</button>
         <button class="tool-btn draw-control" id="toolMarkerBtn" onclick="setDrawTool('marker')">🔢 標記</button>
-        <button class="tool-btn draw-control" id="toolEraserBtn" onclick="setDrawTool('eraser')" title="擦除線條或刪除標記點(自動重新編號)">🧽 橡皮擦</button>
+        <button class="tool-btn draw-control" id="toolTextBtn" onclick="setDrawTool('text')" title="文字標籤將永久固定，不會被清空">💬 標籤</button>
+        <button class="tool-btn draw-control" id="toolEraserBtn" onclick="setDrawTool('eraser')" title="擦除線條、標籤或刪除標記點(自動重新編號)">🧽 橡皮擦</button>
       </div>
 
       <div style="display: flex; align-items: center; gap: 6px; border-left: 1px solid var(--border-color); padding-left: 10px; margin-left: 4px;">
@@ -976,7 +976,7 @@
       <div style="flex: 1;"></div>
       <div style="display: flex; gap: 8px; flex-wrap: wrap;">
         <button class="btn draw-control" style="background: #374151;" onclick="undoDraw()">↩️ 復原一筆</button>
-        <button class="btn btn-danger draw-control" onclick="clearDraw()">🗑️ 清空路線</button>
+        <button class="btn btn-danger draw-control" onclick="clearDraw()" title="清空路線與數字(文字標籤會保留)">🗑️ 清空路線</button>
       </div>
     </div>
 
@@ -1030,10 +1030,8 @@ const C_PURPLE = '#c084fc';
 const C_GREEN = '#4ade80';  
 const C_DEFAULT = '#e2e8f0'; 
 
-// 定義玩家專屬顏色
 const PLAYER_COLORS = ['#00d2ff', '#10b981', '#f59e0b', '#8b5cf6'];
 
-// DEFAULT_ITEMS 清單
 const DEFAULT_ITEMS = [
   { id: 'p1', name: '上行下效', category: '畫作', location: '畫廊', slots: 5, color: C_BLUE },
   { id: 'p2', name: '依線行事', category: '畫作', location: '畫廊', slots: 5, color: C_BLUE },
@@ -1751,9 +1749,6 @@ function initDragAndDrop() {
   });
 }
 
-// ----------------------------------------------------
-// 分享功能核心模組
-// ----------------------------------------------------
 function utf8ToBase64(str) {
   return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (match, p1) => String.fromCharCode('0x' + p1)));
 }
@@ -1931,14 +1926,15 @@ function dismissSharedBanner() {
 }
 
 // ----------------------------------------------------
-// 任務平面圖與畫布路線功能 
+// 任務平面圖與畫布路線功能 (v1.29: 取消內部捲軸，視窗平滑拖曳)
 // ----------------------------------------------------
 let drawTool = 'line'; 
 let drawColor = PLAYER_COLORS[0]; 
 let isDrawing = false;
 let currentPath = [];
 
-let isPanning = false;
+let isPanningMap = false;
+let isDraggingObj = null; 
 let panStartX = 0;
 let panStartY = 0;
 let panScrollLeft = 0;
@@ -1984,7 +1980,6 @@ function switchMapIndex(idx) {
   
   document.getElementById('mapZoomSlider').value = 100;
   updateMapZoom();
-  
   renderMap();
 }
 
@@ -1996,11 +1991,11 @@ function updateMapColorPicker() {
     const div = document.createElement('div');
     div.className = 'color-circle';
     div.style.background = c;
-    if (c === drawColor && drawTool !== 'eraser' && drawTool !== 'pan') {
+    if (c === drawColor && drawTool !== 'eraser' && drawTool !== 'move') {
        div.classList.add('active');
     }
     div.onclick = () => {
-      if (drawTool === 'eraser' || drawTool === 'pan') setDrawTool('line');
+      if (drawTool === 'eraser' || drawTool === 'move') setDrawTool('line');
       document.querySelectorAll('.color-circle').forEach(el => el.classList.remove('active'));
       div.classList.add('active');
       drawColor = c;
@@ -2015,7 +2010,8 @@ function setDrawTool(tool) {
   drawTool = tool;
   document.getElementById('toolLineBtn').classList.toggle('active', tool === 'line');
   document.getElementById('toolMarkerBtn').classList.toggle('active', tool === 'marker');
-  document.getElementById('toolPanBtn').classList.toggle('active', tool === 'pan');
+  document.getElementById('toolMoveBtn').classList.toggle('active', tool === 'move');
+  document.getElementById('toolTextBtn').classList.toggle('active', tool === 'text');
   
   const eraserBtn = document.getElementById('toolEraserBtn');
   const colorPicker = document.getElementById('colorPickerUI');
@@ -2032,8 +2028,8 @@ function setDrawTool(tool) {
     eraserBtn.classList.remove('active', 'eraser-active');
     colorPicker.style.opacity = '1';
     colorPicker.style.pointerEvents = 'auto';
-    canvas.style.cursor = tool === 'pan' ? 'grab' : 'crosshair';
-    mapContainer.style.cursor = tool === 'pan' ? 'grab' : 'default';
+    canvas.style.cursor = tool === 'move' ? 'grab' : 'crosshair';
+    mapContainer.style.cursor = tool === 'move' ? 'grab' : 'default';
   }
 }
 
@@ -2064,7 +2060,8 @@ function renderMap() {
     if (currentExtIdx >= exts.length) {
       imgEl.style.display = 'none';
       noMapText.style.display = 'block';
-      noMapText.innerHTML = `找不到圖片。<br>請將平面圖命名為 <b>map${activeMapIdx+1}.jpg</b> 或 <b>map${activeMapIdx+1}.png</b><br>並與此網頁放在同一個資料夾。`;
+      const mapLabel = ['1F', '2F', 'LG'][activeMapIdx];
+      noMapText.innerHTML = `找不到圖片。<br>請將 <b>${mapLabel}</b> 的平面圖命名為 <b>map${activeMapIdx+1}.jpg</b> 或 <b>map${activeMapIdx+1}.png</b><br>並與此網頁放在同一個資料夾。`;
       
       canvas.width = document.getElementById('mapContainer').clientWidth;
       canvas.height = document.getElementById('mapContainer').clientHeight;
@@ -2118,13 +2115,13 @@ canvas.addEventListener('mouseleave', endAction);
 
 canvas.addEventListener('touchstart', (e) => { 
   if (isMapLocked) return;
-  if (drawTool !== 'pan') e.preventDefault(); 
+  e.preventDefault(); 
   startAction(e); 
 }, {passive: false});
 
 canvas.addEventListener('touchmove', (e) => { 
   if (isMapLocked) return;
-  if (drawTool !== 'pan') e.preventDefault(); 
+  e.preventDefault(); 
   moveAction(e); 
 }, {passive: false});
 
@@ -2175,6 +2172,15 @@ function eraseAt(nx, ny) {
           break;
         }
       }
+    } else if (d.type === 'text') {
+      ctx.font = 'bold 13px sans-serif';
+      const boxW = ctx.measureText(d.text).width + 16;
+      const boxH = 26;
+      const tx = d.nx * cw;
+      const ty = d.ny * ch;
+      if (Math.abs(x - tx) <= boxW/2 && Math.abs(y - ty) <= boxH/2) {
+        hit = true;
+      }
     }
     
     if (hit) {
@@ -2189,20 +2195,54 @@ function eraseAt(nx, ny) {
 function startAction(e) {
   if (isMapLocked || document.getElementById('mapImageEl').style.display === 'none') return; 
   
-  if (drawTool === 'pan') {
-    isPanning = true;
-    const mapContainer = document.getElementById('mapContainer');
-    panStartX = e.touches ? e.touches[0].clientX : e.clientX;
-    panStartY = e.touches ? e.touches[0].clientY : e.clientY;
-    panScrollLeft = mapContainer.scrollLeft;
-    panScrollTop = mapContainer.scrollTop;
-    mapContainer.style.cursor = 'grabbing';
-    canvas.style.cursor = 'grabbing';
+  const pos = getPointerPos(e);
+
+  if (drawTool === 'move') {
+    const cw = canvas.width;
+    const ch = canvas.height;
+    const x = pos.nx * cw;
+    const y = pos.ny * ch;
+    const drawings = mapDrawState[activeMapIdx].drawings;
+    
+    let hitObj = null;
+    for (let i = drawings.length - 1; i >= 0; i--) {
+      const d = drawings[i];
+      if (d.type === 'marker') {
+        const mx = d.nx * cw;
+        const my = d.ny * ch;
+        if (Math.hypot(mx - x, my - y) < 20) { 
+          hitObj = d; break; 
+        }
+      } else if (d.type === 'text') {
+        ctx.font = 'bold 13px sans-serif';
+        const boxW = ctx.measureText(d.text).width + 16;
+        const boxH = 26;
+        const tx = d.nx * cw;
+        const ty = d.ny * ch;
+        if (Math.abs(x - tx) <= boxW/2 && Math.abs(y - ty) <= boxH/2) {
+          hitObj = d; break; 
+        }
+      }
+    }
+
+    if (hitObj) {
+      isDraggingObj = hitObj;
+      canvas.style.cursor = 'move';
+    } else {
+      isPanningMap = true;
+      const mapContainer = document.getElementById('mapContainer');
+      panStartX = e.touches ? e.touches[0].clientX : e.clientX;
+      panStartY = e.touches ? e.touches[0].clientY : e.clientY;
+      panScrollLeft = mapContainer.scrollLeft;
+      // 捕捉網頁當前的垂直捲動位置
+      panScrollTop = window.scrollY || document.documentElement.scrollTop;
+      mapContainer.style.cursor = 'grabbing';
+      canvas.style.cursor = 'grabbing';
+    }
     return;
   }
 
   isDrawing = true;
-  const pos = getPointerPos(e);
 
   if (drawTool === 'line') {
     currentPath = [pos];
@@ -2223,6 +2263,20 @@ function startAction(e) {
     saveMapDrawState();
     redrawCanvas();
     isDrawing = false; 
+  } else if (drawTool === 'text') {
+    const userInput = prompt('請輸入標籤文字：');
+    if (userInput && userInput.trim() !== '') {
+      mapDrawState[activeMapIdx].drawings.push({
+        type: 'text',
+        text: userInput.trim(),
+        color: drawColor,
+        nx: pos.nx,
+        ny: pos.ny
+      });
+      saveMapDrawState();
+      redrawCanvas();
+    }
+    isDrawing = false;
   } else if (drawTool === 'eraser') {
     eraseAt(pos.nx, pos.ny);
   }
@@ -2230,18 +2284,29 @@ function startAction(e) {
 
 function moveAction(e) {
   if (isMapLocked) return;
+  const pos = getPointerPos(e);
 
-  if (isPanning && drawTool === 'pan') {
-    const mapContainer = document.getElementById('mapContainer');
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    mapContainer.scrollLeft = panScrollLeft - (clientX - panStartX);
-    mapContainer.scrollTop = panScrollTop - (clientY - panStartY);
-    return;
+  if (drawTool === 'move') {
+    if (isDraggingObj) {
+      isDraggingObj.nx = pos.nx;
+      isDraggingObj.ny = pos.ny;
+      redrawCanvas();
+      return;
+    } else if (isPanningMap) {
+      const mapContainer = document.getElementById('mapContainer');
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      
+      // 水平方向：捲動 mapContainer
+      mapContainer.scrollLeft = panScrollLeft - (clientX - panStartX);
+      
+      // 垂直方向：直接捲動整個網頁視窗
+      window.scrollTo(window.scrollX || document.documentElement.scrollLeft, panScrollTop - (clientY - panStartY));
+      return;
+    }
   }
 
   if (!isDrawing) return;
-  const pos = getPointerPos(e);
   
   if (drawTool === 'line') {
     const currentDrawings = mapDrawState[activeMapIdx].drawings;
@@ -2256,11 +2321,19 @@ function moveAction(e) {
 function endAction(e) {
   if (isMapLocked) return;
 
-  if (isPanning) {
-    isPanning = false;
-    const mapContainer = document.getElementById('mapContainer');
-    mapContainer.style.cursor = 'grab';
-    canvas.style.cursor = 'crosshair';
+  if (drawTool === 'move') {
+    if (isDraggingObj) {
+      isDraggingObj = null;
+      saveMapDrawState();
+      canvas.style.cursor = 'grab';
+    }
+    if (isPanningMap) {
+      isPanningMap = false;
+      const mapContainer = document.getElementById('mapContainer');
+      mapContainer.style.cursor = 'auto';
+      canvas.style.cursor = 'grab';
+    }
+    return;
   }
 
   if (!isDrawing) return;
@@ -2304,6 +2377,30 @@ function redrawCanvas() {
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(d.text, x, y + 1);
+    } else if (d.type === 'text') {
+      const x = d.nx * canvas.width;
+      const y = d.ny * canvas.height;
+      ctx.font = 'bold 13px sans-serif';
+      const textWidth = ctx.measureText(d.text).width;
+      const boxW = textWidth + 16; 
+      const boxH = 26; 
+      
+      ctx.fillStyle = 'rgba(15, 20, 28, 0.85)';
+      ctx.beginPath();
+      if (ctx.roundRect) {
+        ctx.roundRect(x - boxW/2, y - boxH/2, boxW, boxH, 6);
+      } else {
+        ctx.rect(x - boxW/2, y - boxH/2, boxW, boxH);
+      }
+      ctx.fill();
+      ctx.strokeStyle = d.color; 
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      
+      ctx.fillStyle = '#ffffff';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(d.text, x, y + 1);
     }
   });
 }
@@ -2323,8 +2420,10 @@ function undoDraw() {
 
 function clearDraw() {
   if (isMapLocked) return;
-  if (confirm('確定要清空這張平面圖上的所有路線與標記嗎？')) {
-    mapDrawState[activeMapIdx].drawings = [];
+  if (confirm('確定要清空這張平面圖上的「路線」與「標記數字」嗎？\n(你建立的文字標籤將會保留)')) {
+    const drawings = mapDrawState[activeMapIdx].drawings;
+    // 只保留 text 類型的標籤，清空 line 與 marker
+    mapDrawState[activeMapIdx].drawings = drawings.filter(d => d.type === 'text');
     mapDrawState[activeMapIdx].markerCounter = 1;
     saveMapDrawState();
     redrawCanvas();
