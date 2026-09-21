@@ -658,11 +658,11 @@
       margin-bottom: 8px;
     }
 
-    /* 任務平面圖專屬樣式 (v1.29: 徹底移除內部捲軸，自然向下延伸) */
+    /* 任務平面圖專屬樣式 */
     .map-subtabs {
       display: flex;
       gap: 8px;
-      margin-bottom: 12px;
+      margin-bottom: 0;
     }
     .map-subtabs button {
       background: #1f2937;
@@ -745,17 +745,15 @@
       transform: scale(1.1);
     }
 
-    /* 移除固定高度，讓畫布自然長高；同時隱藏所有的醜陋捲軸 */
     .map-container-wrapper {
       position: relative;
       width: 100%;
+      height: calc(100vh - 220px); 
       background: #0d1117;
       border: 1px dashed var(--border-color);
       border-radius: 8px;
       overflow: auto; 
       text-align: center; 
-      
-      /* 隱藏捲軸 */
       -ms-overflow-style: none;  
       scrollbar-width: none; 
     }
@@ -817,6 +815,9 @@
       .team-summary-bar {
         justify-content: flex-start;
       }
+      .map-container-wrapper {
+        height: 60vh; 
+      }
     }
   </style>
 </head>
@@ -825,7 +826,7 @@
 <div class="container">
   <header>
     <div class="title-area">
-      <h1>GTA 科茲中心任務分配工具 <span>v1.29 穩定版</span></h1>
+      <h1>GTA 科茲中心任務分配工具 <span>v1.30 穩定版</span></h1>
     </div>
     <div class="nav-buttons">
       <div style="display: flex; align-items: center; gap: 6px;">
@@ -947,10 +948,19 @@
 
   <!-- 分頁四：任務平面圖與路線規劃 -->
   <div id="mapView" style="display: none;">
-    <div class="map-subtabs" id="mapSubTabs">
-      <button class="active" onclick="switchMapIndex(0)">1F</button>
-      <button onclick="switchMapIndex(1)">2F</button>
-      <button onclick="switchMapIndex(2)">LG</button>
+    
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+      <div class="map-subtabs" id="mapSubTabs">
+        <button class="active" onclick="switchMapIndex(0)">1F</button>
+        <button onclick="switchMapIndex(1)">2F</button>
+        <button onclick="switchMapIndex(2)">LG</button>
+      </div>
+      <button class="btn btn-share" onclick="openMapDataModal()">🔄 傳送 / 接收路線代碼</button>
+    </div>
+
+    <!-- v1.30: 玩家專屬圖層開關 -->
+    <div id="mapLayersUI" style="display: flex; gap: 12px; margin-bottom: 12px; background: var(--bg-card); padding: 8px 14px; border: 1px solid var(--border-color); border-radius: 8px; flex-wrap: wrap;">
+      <!-- JS 動態產生圖層開關 -->
     </div>
 
     <div class="map-toolbar">
@@ -991,7 +1001,7 @@
 
 </div>
 
-<!-- 分享功能 Modal -->
+<!-- 網址與速報分享 Modal -->
 <div id="shareModal" class="modal-overlay" onclick="closeShareModal(event)">
   <div class="modal-content" onclick="event.stopPropagation()">
     <div class="modal-header">
@@ -1005,19 +1015,37 @@
       </label>
     </div>
     <div class="share-section">
-      <label>🔗 網頁分享連結（隊友開啟可直接看介面與路線）</label>
+      <label>🔗 網頁分享連結（隊友開啟可直接看介面與跑圖清單）</label>
       <div class="share-input-group">
         <input type="text" id="shareUrlInput" readonly>
         <button class="btn btn-primary" onclick="copyShareUrl()">複製連結</button>
       </div>
       <span style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; display: block;">
-        💡 隊友需在同一個區域網路 (Wi-Fi) 下開啟此連結。(註：平面圖與手繪路線為本機資料，不會傳送)
+        💡 隊友需在同一個區域網路 (Wi-Fi) 下開啟此連結。(註：平面圖為單機資料，需透過地圖介面的「傳送路線」功能分享畫布)
       </span>
     </div>
     <div class="share-section">
       <label>💬 文字速報（支援 Discord Markdown 語法）</label>
       <textarea id="shareTextSummary" class="share-textarea" readonly></textarea>
       <button class="btn" style="width: 100%; justify-content: center;" onclick="copyShareText()">複製文字速報</button>
+    </div>
+  </div>
+</div>
+
+<!-- 路線畫布專屬代碼 Modal -->
+<div id="mapDataModal" class="modal-overlay" onclick="closeMapDataModal(event)">
+  <div class="modal-content" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3>🔄 傳送 / 接收手繪路線</h3>
+      <button class="modal-close-btn" onclick="closeMapDataModal()">&times;</button>
+    </div>
+    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px;">
+      由於畫布座標資料龐大，無法透過網址分享。請隊長點擊「產生代碼」傳給隊友，隊友在此貼上代碼後點擊「載入」，即可同步所有手繪路線與標記。
+    </p>
+    <textarea id="mapDataTextarea" class="share-textarea" style="height: 100px;" placeholder="請在此貼上隊長給的地圖代碼..."></textarea>
+    <div style="display: flex; gap: 8px; margin-top: 8px;">
+      <button class="btn btn-primary" style="flex:1; justify-content: center;" onclick="generateMapData()">📤 產生目前路線代碼</button>
+      <button class="btn btn-share" style="flex:1; justify-content: center;" onclick="importMapData()">📥 貼上並載入路線</button>
     </div>
   </div>
 </div>
@@ -1122,6 +1150,7 @@ let mapDrawState = [
   { drawings: [], markerCounter: 1 }
 ];
 let activeMapIdx = 0;
+let hiddenColors = []; // 紀錄目前被隱藏的玩家圖層顏色
 
 function initState() {
   const saved = localStorage.getItem(STORAGE_KEY);
@@ -1196,9 +1225,16 @@ function changePlayerCount(count) {
       item.assignedTo = null;
     }
   });
+  // 如果隱藏圖層中有不再參與的玩家顏色，將其清除
+  const currentActiveColors = PLAYER_COLORS.slice(0, state.playerCount);
+  hiddenColors = hiddenColors.filter(c => currentActiveColors.includes(c));
+  
   saveState();
   updateUI();
   updateMapColorPicker(); 
+  if (document.getElementById('mapView').style.display !== 'none') {
+    redrawCanvas();
+  }
 }
 
 function updatePlayerName(index, name) {
@@ -1376,6 +1412,7 @@ function updateUI() {
   renderPlayersCards();
   renderSummaryBar();
   renderItemsTable();
+  renderMapLayersUI(); 
   if (document.getElementById('routeView').style.display !== 'none') renderRouteView();
   if (document.getElementById('mainTargetsView').style.display !== 'none') renderMainTargets();
 }
@@ -1926,7 +1963,7 @@ function dismissSharedBanner() {
 }
 
 // ----------------------------------------------------
-// 任務平面圖與畫布路線功能 (v1.29: 取消內部捲軸，視窗平滑拖曳)
+// 任務平面圖與畫布路線功能 (v1.30: 圖層開關與匯入匯出)
 // ----------------------------------------------------
 let drawTool = 'line'; 
 let drawColor = PLAYER_COLORS[0]; 
@@ -1971,6 +2008,41 @@ function toggleMapLock() {
       document.getElementById('colorPickerUI').style.pointerEvents = 'none';
     }
   }
+}
+
+function renderMapLayersUI() {
+  const container = document.getElementById('mapLayersUI');
+  if (!container) return;
+  container.innerHTML = `<span style="font-size: 0.85rem; color: var(--text-muted); margin-right: 8px;">👁️ 顯示圖層:</span>`;
+  
+  for(let i = 0; i < state.playerCount; i++) {
+    const c = PLAYER_COLORS[i];
+    const isChecked = !hiddenColors.includes(c);
+    
+    const label = document.createElement('label');
+    label.style.display = 'flex';
+    label.style.alignItems = 'center';
+    label.style.gap = '4px';
+    label.style.cursor = 'pointer';
+    label.style.fontSize = '0.85rem';
+    label.style.color = '#fff';
+    
+    label.innerHTML = `
+      <input type="checkbox" style="accent-color: ${c};" ${isChecked ? 'checked' : ''} 
+             onchange="toggleMapLayer('${c}', this.checked)">
+      <span style="color: ${c}; font-weight: bold;">${state.playerNames[i]}</span>
+    `;
+    container.appendChild(label);
+  }
+}
+
+function toggleMapLayer(color, isVisible) {
+  if (isVisible) {
+    hiddenColors = hiddenColors.filter(c => c !== color);
+  } else {
+    if (!hiddenColors.includes(color)) hiddenColors.push(color);
+  }
+  redrawCanvas();
 }
 
 function switchMapIndex(idx) {
@@ -2146,6 +2218,8 @@ function eraseAt(nx, ny) {
   
   for (let i = drawings.length - 1; i >= 0; i--) {
     const d = drawings[i];
+    if (hiddenColors.includes(d.color)) continue; 
+
     let hit = false;
     
     if (d.type === 'marker') {
@@ -2207,6 +2281,8 @@ function startAction(e) {
     let hitObj = null;
     for (let i = drawings.length - 1; i >= 0; i--) {
       const d = drawings[i];
+      if (hiddenColors.includes(d.color)) continue;
+
       if (d.type === 'marker') {
         const mx = d.nx * cw;
         const my = d.ny * ch;
@@ -2234,12 +2310,17 @@ function startAction(e) {
       panStartX = e.touches ? e.touches[0].clientX : e.clientX;
       panStartY = e.touches ? e.touches[0].clientY : e.clientY;
       panScrollLeft = mapContainer.scrollLeft;
-      // 捕捉網頁當前的垂直捲動位置
       panScrollTop = window.scrollY || document.documentElement.scrollTop;
       mapContainer.style.cursor = 'grabbing';
       canvas.style.cursor = 'grabbing';
     }
     return;
+  }
+
+  if (hiddenColors.includes(drawColor)) {
+     alert("⚠️ 你目前選擇的顏色圖層已被隱藏，請先取消隱藏再畫圖！");
+     isDrawing = false;
+     return;
   }
 
   isDrawing = true;
@@ -2296,11 +2377,7 @@ function moveAction(e) {
       const mapContainer = document.getElementById('mapContainer');
       const clientX = e.touches ? e.touches[0].clientX : e.clientX;
       const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-      
-      // 水平方向：捲動 mapContainer
       mapContainer.scrollLeft = panScrollLeft - (clientX - panStartX);
-      
-      // 垂直方向：直接捲動整個網頁視窗
       window.scrollTo(window.scrollX || document.documentElement.scrollLeft, panScrollTop - (clientY - panStartY));
       return;
     }
@@ -2348,6 +2425,8 @@ function redrawCanvas() {
   const drawings = mapDrawState[activeMapIdx].drawings;
   
   drawings.forEach(d => {
+    if (hiddenColors.includes(d.color)) return;
+
     if (d.type === 'line' && d.points.length > 0) {
       ctx.beginPath();
       ctx.moveTo(d.points[0].nx * canvas.width, d.points[0].ny * canvas.height);
@@ -2422,11 +2501,61 @@ function clearDraw() {
   if (isMapLocked) return;
   if (confirm('確定要清空這張平面圖上的「路線」與「標記數字」嗎？\n(你建立的文字標籤將會保留)')) {
     const drawings = mapDrawState[activeMapIdx].drawings;
-    // 只保留 text 類型的標籤，清空 line 與 marker
     mapDrawState[activeMapIdx].drawings = drawings.filter(d => d.type === 'text');
     mapDrawState[activeMapIdx].markerCounter = 1;
     saveMapDrawState();
     redrawCanvas();
+  }
+}
+
+// ----------------------------------------------------
+// 地圖資料傳送與接收模組
+// ----------------------------------------------------
+function openMapDataModal() {
+  document.getElementById('mapDataTextarea').value = '';
+  document.getElementById('mapDataModal').style.display = 'flex';
+}
+
+function closeMapDataModal(event) {
+  if (event && event.target !== event.currentTarget) return;
+  document.getElementById('mapDataModal').style.display = 'none';
+}
+
+function generateMapData() {
+  const data = JSON.stringify(mapDrawState);
+  const encoded = utf8ToBase64(data);
+  const textarea = document.getElementById('mapDataTextarea');
+  textarea.value = encoded;
+  textarea.select();
+  try {
+    navigator.clipboard.writeText(encoded);
+    alert('✅ 路線代碼已成功複製！請貼到 Discord 傳給隊友。');
+  } catch (e) {
+    document.execCommand('copy');
+    alert('✅ 路線代碼已成功複製！');
+  }
+}
+
+function importMapData() {
+  const text = document.getElementById('mapDataTextarea').value.trim();
+  if (!text) { 
+    alert('⚠️ 請先在框內貼上隊長給的代碼！'); 
+    return; 
+  }
+  try {
+    const decoded = base64ToUtf8(text);
+    const parsed = JSON.parse(decoded);
+    if (Array.isArray(parsed) && parsed.length >= 3) {
+      mapDrawState = parsed;
+      saveMapDrawState();
+      redrawCanvas();
+      alert('✅ 成功載入隊長的路線規劃！');
+      closeMapDataModal();
+    } else {
+      throw new Error('Invalid format');
+    }
+  } catch(e) {
+    alert('❌ 路線代碼格式錯誤或已損毀！請確認有完整複製。');
   }
 }
 
