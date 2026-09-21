@@ -745,10 +745,10 @@
       transform: scale(1.1);
     }
 
+    /* v1.31: 徹底取消高度限制與捲軸，讓畫布自然向下延伸 */
     .map-container-wrapper {
       position: relative;
       width: 100%;
-      height: calc(100vh - 220px); 
       background: #0d1117;
       border: 1px dashed var(--border-color);
       border-radius: 8px;
@@ -815,9 +815,6 @@
       .team-summary-bar {
         justify-content: flex-start;
       }
-      .map-container-wrapper {
-        height: 60vh; 
-      }
     }
   </style>
 </head>
@@ -826,7 +823,7 @@
 <div class="container">
   <header>
     <div class="title-area">
-      <h1>GTA 科茲中心任務分配工具 <span>v1.30 穩定版</span></h1>
+      <h1>GTA 科茲中心任務分配工具 <span>v1.31 穩定版</span></h1>
     </div>
     <div class="nav-buttons">
       <div style="display: flex; align-items: center; gap: 6px;">
@@ -958,7 +955,7 @@
       <button class="btn btn-share" onclick="openMapDataModal()">🔄 傳送 / 接收路線代碼</button>
     </div>
 
-    <!-- v1.30: 玩家專屬圖層開關 -->
+    <!-- 玩家專屬圖層開關 -->
     <div id="mapLayersUI" style="display: flex; gap: 12px; margin-bottom: 12px; background: var(--bg-card); padding: 8px 14px; border: 1px solid var(--border-color); border-radius: 8px; flex-wrap: wrap;">
       <!-- JS 動態產生圖層開關 -->
     </div>
@@ -1150,7 +1147,7 @@ let mapDrawState = [
   { drawings: [], markerCounter: 1 }
 ];
 let activeMapIdx = 0;
-let hiddenColors = []; // 紀錄目前被隱藏的玩家圖層顏色
+let hiddenColors = []; 
 
 function initState() {
   const saved = localStorage.getItem(STORAGE_KEY);
@@ -1225,7 +1222,6 @@ function changePlayerCount(count) {
       item.assignedTo = null;
     }
   });
-  // 如果隱藏圖層中有不再參與的玩家顏色，將其清除
   const currentActiveColors = PLAYER_COLORS.slice(0, state.playerCount);
   hiddenColors = hiddenColors.filter(c => currentActiveColors.includes(c));
   
@@ -1963,7 +1959,7 @@ function dismissSharedBanner() {
 }
 
 // ----------------------------------------------------
-// 任務平面圖與畫布路線功能 (v1.30: 圖層開關與匯入匯出)
+// 任務平面圖與畫布路線功能
 // ----------------------------------------------------
 let drawTool = 'line'; 
 let drawColor = PLAYER_COLORS[0]; 
@@ -2187,7 +2183,7 @@ canvas.addEventListener('mouseleave', endAction);
 
 canvas.addEventListener('touchstart', (e) => { 
   if (isMapLocked) return;
-  e.preventDefault(); 
+  if (drawTool !== 'pan') e.preventDefault(); 
   startAction(e); 
 }, {passive: false});
 
@@ -2377,6 +2373,7 @@ function moveAction(e) {
       const mapContainer = document.getElementById('mapContainer');
       const clientX = e.touches ? e.touches[0].clientX : e.clientX;
       const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      
       mapContainer.scrollLeft = panScrollLeft - (clientX - panStartX);
       window.scrollTo(window.scrollX || document.documentElement.scrollLeft, panScrollTop - (clientY - panStartY));
       return;
