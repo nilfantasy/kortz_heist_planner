@@ -243,6 +243,43 @@
       color: #38bdf8;
     }
 
+    /* 玩家卡片內負責區域選單 */
+    .player-zone-row {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid #222d3d;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .zone-select-sm {
+      background: #111720;
+      border: 1px solid #2d3e54;
+      color: #e2e8f0;
+      padding: 3px 8px;
+      border-radius: 5px;
+      font-size: 0.78rem;
+      cursor: pointer;
+    }
+
+    .zone-select-sm:focus {
+      border-color: var(--accent-cyan);
+      outline: none;
+    }
+
+    .zone-pill {
+      font-size: 0.72rem;
+      background: rgba(0, 210, 255, 0.12);
+      color: var(--accent-cyan);
+      border: 1px solid rgba(0, 210, 255, 0.35);
+      padding: 1px 7px;
+      border-radius: 12px;
+      font-weight: 500;
+    }
+
     .team-summary-bar {
       background: #141c27;
       border: 1px solid var(--border-color);
@@ -486,6 +523,9 @@
       border-bottom: 1px solid var(--border-color);
       display: flex;
       justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px;
     }
 
     .route-item {
@@ -579,7 +619,7 @@
       border: 1px solid #333;
     }
 
-    /* 分享彈窗 Modal */
+    /* 彈窗 Modal */
     .modal-overlay {
       display: none;
       position: fixed;
@@ -600,6 +640,8 @@
       max-width: 540px;
       padding: 20px;
       box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+      max-height: 90vh;
+      overflow-y: auto;
     }
 
     .modal-header {
@@ -656,6 +698,27 @@
       font-family: inherit;
       resize: vertical;
       margin-bottom: 8px;
+    }
+
+    /* 自動分配設定列表 */
+    .assign-player-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #131b26;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+      gap: 10px;
+    }
+
+    .assign-player-name {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+      font-size: 0.9rem;
     }
 
     /* 任務平面圖專屬樣式 */
@@ -745,7 +808,6 @@
       transform: scale(1.1);
     }
 
-    /* v1.31: 徹底取消高度限制與捲軸，讓畫布自然向下延伸 */
     .map-container-wrapper {
       position: relative;
       width: 100%;
@@ -823,7 +885,7 @@
 <div class="container">
   <header>
     <div class="title-area">
-      <h1>GTA 科茲中心任務分配工具 <span>v1.31 穩定版</span></h1>
+      <h1>GTA 科茲中心任務分配工具 <span>v1.32 穩定版</span></h1>
     </div>
     <div class="nav-buttons">
       <div style="display: flex; align-items: center; gap: 6px;">
@@ -836,7 +898,7 @@
         </select>
       </div>
       <button class="btn btn-share" onclick="openShareModal()">📤 分享分配</button>
-      <button class="btn" onclick="autoAssignOptimal()">⚡ 依 CP 值最佳化自動分配</button>
+      <button class="btn btn-primary" onclick="openAutoAssignModal()">⚡ 依 CP 值最佳化自動分配</button>
       <button class="btn btn-danger" onclick="resetMission()">🔄 重設本次任務</button>
     </div>
   </header>
@@ -955,10 +1017,7 @@
       <button class="btn btn-share" onclick="openMapDataModal()">🔄 傳送 / 接收路線代碼</button>
     </div>
 
-    <!-- 玩家專屬圖層開關 -->
-    <div id="mapLayersUI" style="display: flex; gap: 12px; margin-bottom: 12px; background: var(--bg-card); padding: 8px 14px; border: 1px solid var(--border-color); border-radius: 8px; flex-wrap: wrap;">
-      <!-- JS 動態產生圖層開關 -->
-    </div>
+    <div id="mapLayersUI" style="display: flex; gap: 12px; margin-bottom: 12px; background: var(--bg-card); padding: 8px 14px; border: 1px solid var(--border-color); border-radius: 8px; flex-wrap: wrap;"></div>
 
     <div class="map-toolbar">
       <div style="display: flex; gap: 8px; flex-wrap: wrap;">
@@ -996,6 +1055,41 @@
     </div>
   </div>
 
+</div>
+
+<!-- 自動分配設定 Modal (v1.32 新增) -->
+<div id="autoAssignModal" class="modal-overlay" onclick="closeAutoAssignModal(event)">
+  <div class="modal-content" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3>⚡ 區域與 CP 值最佳化自動分配</h3>
+      <button class="modal-close-btn" onclick="closeAutoAssignModal()">&times;</button>
+    </div>
+
+    <div class="share-section">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+        <label style="margin: 0;">📍 指定各玩家負責區域</label>
+        <button id="swapZonesBtn" class="btn" style="padding: 4px 10px; font-size: 0.78rem;" onclick="swapTwoPlayerZones()">🔁 互換區域</button>
+      </div>
+      <div id="autoAssignPlayersList"></div>
+    </div>
+
+    <div class="share-section">
+      <label>🏦 金庫 / 卸貨區（運輸貨車）分配規則</label>
+      <select id="otherZoneOwnerSelect" style="width: 100%;" onchange="updateAutoAssignConfig()"></select>
+    </div>
+
+    <div class="share-section" style="padding: 10px 12px; background: #131b26; border: 1px solid var(--border-color); border-radius: 8px;">
+      <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin: 0; color: #e2e8f0; font-weight: normal;">
+        <input type="checkbox" id="allowOverflowCheck" class="custom-checkbox" onchange="updateAutoAssignConfig()">
+        <span style="font-size: 0.85rem; user-select: none;">負責區域裝不滿 10 格時，自動跨區撿取高 CP 值物品補滿</span>
+      </label>
+    </div>
+
+    <div style="display: flex; gap: 8px; margin-top: 16px;">
+      <button class="btn" style="flex: 1; justify-content: center;" onclick="closeAutoAssignModal()">取消</button>
+      <button class="btn btn-primary" style="flex: 2; justify-content: center; font-weight: 600;" onclick="executeAutoAssignOptimal()">⚡ 開始最佳化分配</button>
+    </div>
+  </div>
 </div>
 
 <!-- 網址與速報分享 Modal -->
@@ -1056,6 +1150,13 @@ const C_GREEN = '#4ade80';
 const C_DEFAULT = '#e2e8f0'; 
 
 const PLAYER_COLORS = ['#00d2ff', '#10b981', '#f59e0b', '#8b5cf6'];
+
+const ZONE_LABELS = {
+  '1F_LG': '1F + LG',
+  '2F_GAL': '2F + 畫廊',
+  'OTHER': '金庫 + 卸貨區',
+  'ALL': '不限 (全區)'
+};
 
 const DEFAULT_ITEMS = [
   { id: 'p1', name: '上行下效', category: '畫作', location: '畫廊', slots: 5, color: C_BLUE },
@@ -1129,6 +1230,11 @@ const MAPS_DRAW_KEY = 'gta_kortz_mission_maps_drawings';
 let state = {
   playerCount: 2,
   playerNames: ['玩家 1', '玩家 2', '玩家 3', '玩家 4'],
+  playerZones: ['1F_LG', '2F_GAL', 'ALL', 'ALL'],
+  autoAssignConfig: {
+    otherZoneOwner: 'ANY',
+    allowOverflow: true
+  },
   items: [],
   mainTargets: []
 };
@@ -1156,6 +1262,12 @@ function initState() {
       state = JSON.parse(saved);
       if (!state.playerNames || state.playerNames.length < 4) {
         state.playerNames = ['玩家 1', '玩家 2', '玩家 3', '玩家 4'];
+      }
+      if (!state.playerZones || state.playerZones.length < 4) {
+        state.playerZones = ['1F_LG', '2F_GAL', 'ALL', 'ALL'];
+      }
+      if (!state.autoAssignConfig) {
+        state.autoAssignConfig = { otherZoneOwner: 'ANY', allowOverflow: true };
       }
       
       const validItemIds = DEFAULT_ITEMS.map(i => i.id);
@@ -1194,6 +1306,8 @@ function initState() {
 function resetToDefault() {
   state.playerCount = 2;
   state.playerNames = ['玩家 1', '玩家 2', '玩家 3', '玩家 4'];
+  state.playerZones = ['1F_LG', '2F_GAL', 'ALL', 'ALL'];
+  state.autoAssignConfig = { otherZoneOwner: 'ANY', allowOverflow: true };
   state.items = DEFAULT_ITEMS.map((item, index) => ({
     ...item,
     isTarget: false,
@@ -1222,6 +1336,13 @@ function changePlayerCount(count) {
       item.assignedTo = null;
     }
   });
+  // 若選擇的 otherZoneOwner 超過目前人數，重設回 ANY
+  if (state.autoAssignConfig && state.autoAssignConfig.otherZoneOwner.startsWith('P_')) {
+    const pIdx = parseInt(state.autoAssignConfig.otherZoneOwner.replace('P_', ''), 10);
+    if (pIdx >= state.playerCount) {
+      state.autoAssignConfig.otherZoneOwner = 'ANY';
+    }
+  }
   const currentActiveColors = PLAYER_COLORS.slice(0, state.playerCount);
   hiddenColors = hiddenColors.filter(c => currentActiveColors.includes(c));
   
@@ -1235,6 +1356,12 @@ function changePlayerCount(count) {
 
 function updatePlayerName(index, name) {
   state.playerNames[index] = name.trim() || `玩家 ${index + 1}`;
+  saveState();
+  updateUI();
+}
+
+function updatePlayerZone(index, zoneVal) {
+  state.playerZones[index] = zoneVal;
   saveState();
   updateUI();
 }
@@ -1312,48 +1439,301 @@ function calculatePlayerValue(playerIdx) {
     .reduce((sum, item) => sum + (parseInt(item.price, 10) || 0), 0);
 }
 
-function autoAssignOptimal() {
+// ----------------------------------------------------
+// v1.32 區域分組與動態規劃 (0/1 Knapsack) 自動分配模組
+// ----------------------------------------------------
+function getItemZoneGroup(location) {
+  if (location === '1F' || location === 'LG') return '1F_LG';
+  if (location === '2F' || location === '畫廊') return '2F_GAL';
+  return 'OTHER'; // 金庫、卸貨區
+}
+
+function openAutoAssignModal() {
+  renderAutoAssignModalUI();
+  document.getElementById('autoAssignModal').style.display = 'flex';
+}
+
+function closeAutoAssignModal(event) {
+  if (event && event.target !== event.currentTarget) return;
+  document.getElementById('autoAssignModal').style.display = 'none';
+}
+
+function renderAutoAssignModalUI() {
+  const listContainer = document.getElementById('autoAssignPlayersList');
+  listContainer.innerHTML = '';
+
+  const swapBtn = document.getElementById('swapZonesBtn');
+  swapBtn.style.display = state.playerCount === 2 ? 'inline-flex' : 'none';
+
+  for (let i = 0; i < state.playerCount; i++) {
+    const curZone = state.playerZones[i] || 'ALL';
+    const row = document.createElement('div');
+    row.className = 'assign-player-row';
+    row.innerHTML = `
+      <div class="assign-player-name">
+        <div style="width: 12px; height: 12px; border-radius: 50%; background: ${PLAYER_COLORS[i]};"></div>
+        <span>${state.playerNames[i]}</span>
+      </div>
+      <select onchange="onModalPlayerZoneChange(${i}, this.value)">
+        <option value="1F_LG" ${curZone === '1F_LG' ? 'selected' : ''}>1F + LG</option>
+        <option value="2F_GAL" ${curZone === '2F_GAL' ? 'selected' : ''}>2F + 畫廊</option>
+        <option value="OTHER" ${curZone === 'OTHER' ? 'selected' : ''}>金庫 + 卸貨區</option>
+        <option value="ALL" ${curZone === 'ALL' ? 'selected' : ''}>不限 (全區)</option>
+      </select>
+    `;
+    listContainer.appendChild(row);
+  }
+
+  const otherSelect = document.getElementById('otherZoneOwnerSelect');
+  const curOther = state.autoAssignConfig.otherZoneOwner || 'ANY';
+  let otherOptions = `
+    <option value="ANY" ${curOther === 'ANY' ? 'selected' : ''}>依 CP 值最佳化自由分配給有空位的玩家 (預設)</option>
+    <option value="1F_LG" ${curOther === '1F_LG' ? 'selected' : ''}>併入「1F + LG」組別</option>
+    <option value="2F_GAL" ${curOther === '2F_GAL' ? 'selected' : ''}>併入「2F + 畫廊」組別</option>
+  `;
+  for (let i = 0; i < state.playerCount; i++) {
+    otherOptions += `<option value="P_${i}" ${curOther === 'P_' + i ? 'selected' : ''}>指定給 ${state.playerNames[i]}</option>`;
+  }
+  otherOptions += `<option value="SKIP" ${curOther === 'SKIP' ? 'selected' : ''}>不自動分配 (保留手動指派)</option>`;
+  otherSelect.innerHTML = otherOptions;
+
+  document.getElementById('allowOverflowCheck').checked = !!state.autoAssignConfig.allowOverflow;
+}
+
+function onModalPlayerZoneChange(pIdx, val) {
+  state.playerZones[pIdx] = val;
+  saveState();
+  renderPlayersCards();
+  if (document.getElementById('routeView').style.display !== 'none') renderRouteView();
+}
+
+function swapTwoPlayerZones() {
+  if (state.playerCount !== 2) return;
+  const temp = state.playerZones[0];
+  state.playerZones[0] = state.playerZones[1];
+  state.playerZones[1] = temp;
+  saveState();
+  renderAutoAssignModalUI();
+  renderPlayersCards();
+  if (document.getElementById('routeView').style.display !== 'none') renderRouteView();
+}
+
+function updateAutoAssignConfig() {
+  state.autoAssignConfig.otherZoneOwner = document.getElementById('otherZoneOwnerSelect').value;
+  state.autoAssignConfig.allowOverflow = document.getElementById('allowOverflowCheck').checked;
+  saveState();
+}
+
+// 精確 0/1 背包動態規劃（容量上限 10 格，同價值時優先選佔格較少 / CP 值較高者）
+function solveKnapsack(items, capacity) {
+  if (capacity <= 0 || items.length === 0) return [];
+  const dp = Array.from({ length: capacity + 1 }, () => null);
+  dp[0] = { val: 0, chosen: [] };
+
+  for (const item of items) {
+    const w = item.slots;
+    const v = parseInt(item.price, 10) || 0;
+    if (w <= 0 || w > capacity) continue;
+    for (let cap = capacity; cap >= w; cap--) {
+      if (dp[cap - w] !== null) {
+        const newVal = dp[cap - w].val + v;
+        if (dp[cap] === null || newVal > dp[cap].val) {
+          dp[cap] = { val: newVal, chosen: [...dp[cap - w].chosen, item] };
+        }
+      }
+    }
+  }
+
+  let best = dp[0];
+  for (let cap = 1; cap <= capacity; cap++) {
+    if (dp[cap] !== null && dp[cap].val > best.val) {
+      best = dp[cap];
+    }
+  }
+  return best.chosen;
+}
+
+function getPermutations(arr) {
+  if (arr.length <= 1) return [arr];
+  const result = [];
+  for (let i = 0; i < arr.length; i++) {
+    const current = arr[i];
+    const rest = arr.slice(0, i).concat(arr.slice(i + 1));
+    for (const perm of getPermutations(rest)) {
+      result.push([current, ...perm]);
+    }
+  }
+  return result;
+}
+
+// 判斷某物品在「非跨區補位」階段是否符合指定玩家的負責區域
+function isItemInPlayerZone(item, pIdx, otherOwner) {
+  const pZone = state.playerZones[pIdx] || 'ALL';
+  const rawGroup = getItemZoneGroup(item.location);
+
+  if (rawGroup === 'OTHER') {
+    if (otherOwner === 'SKIP') return false;
+    if (otherOwner === 'ANY') return true;
+    if (otherOwner === 'P_' + pIdx) return true;
+    if (otherOwner === '1F_LG' || otherOwner === '2F_GAL') {
+      return pZone === otherOwner || pZone === 'ALL';
+    }
+    return false;
+  }
+
+  // rawGroup 為 1F_LG 或 2F_GAL
+  return pZone === rawGroup || pZone === 'ALL';
+}
+
+function executeAutoAssignOptimal() {
+  updateAutoAssignConfig();
+
   const activeItems = state.items.filter(i => (parseInt(i.price, 10) || 0) > 0);
-  
   if (activeItems.length === 0) {
     alert('請先輸入偵查到的物品金額，系統才能進行自動分配！');
     return;
   }
 
-  state.items.forEach(i => {
-    i.assignedTo = null;
-    i.routeOrder = 0; 
-  });
+  const otherOwner = state.autoAssignConfig.otherZoneOwner || 'ANY';
+  const allowOverflow = !!state.autoAssignConfig.allowOverflow;
+  const pIndices = Array.from({ length: state.playerCount }, (_, i) => i);
 
-  const sorted = [...activeItems].sort((a, b) => {
-    if (a.isTarget && !b.isTarget) return -1;
-    if (!a.isTarget && b.isTarget) return 1;
+  // 將指定區域玩家與全區玩家分組，確保專屬區域玩家優先拿到自己區域的物品
+  const specificPlayers = pIndices.filter(p => (state.playerZones[p] || 'ALL') !== 'ALL');
+  const allZonePlayers = pIndices.filter(p => (state.playerZones[p] || 'ALL') === 'ALL');
 
-    const prA = parseInt(a.price, 10) || 0;
-    const prB = parseInt(b.price, 10) || 0;
-    const cpA = a.slots > 0 ? (prA / a.slots) : 0;
-    const cpB = b.slots > 0 ? (prB / b.slots) : 0;
-    return cpB - cpA;
-  });
+  const specificPerms = getPermutations(specificPlayers);
+  const allPerms = getPermutations(allZonePlayers);
 
-  const playerBags = Array.from({ length: state.playerCount }, () => 0);
+  let bestSolution = null;
 
-  sorted.forEach(item => {
-    for (let p = 0; p < state.playerCount; p++) {
-      if (playerBags[p] + item.slots <= 10) {
-        item.assignedTo = p;
-        playerBags[p] += item.slots;
-        break;
+  for (const sPerm of specificPerms) {
+    for (const aPerm of allPerms) {
+      const playerOrder = [...sPerm, ...aPerm];
+      const assignment = {}; // itemId -> pIdx
+      const bags = Array.from({ length: state.playerCount }, () => 0);
+
+      // 步驟 1：強制優先分配「指定物品 (isTarget)」
+      const mandatoryItems = activeItems
+        .filter(i => i.isTarget)
+        .sort((a, b) => {
+          const cpA = (parseInt(a.price, 10) || 0) / Math.max(1, a.slots);
+          const cpB = (parseInt(b.price, 10) || 0) / Math.max(1, b.slots);
+          return cpB - cpA;
+        });
+
+      let mandatoryAssignedCount = 0;
+
+      for (const item of mandatoryItems) {
+        const rawGroup = getItemZoneGroup(item.location);
+        // 優先挑選負責該區域的玩家
+        let chosenPlayer = null;
+
+        // Tier 1: 專屬負責該區的玩家
+        for (const p of playerOrder) {
+          const pZone = state.playerZones[p] || 'ALL';
+          const strictMatch = (rawGroup === 'OTHER')
+            ? (otherOwner === 'P_' + p || pZone === 'OTHER' || (otherOwner === pZone))
+            : (pZone === rawGroup);
+          if (strictMatch && bags[p] + item.slots <= 10) {
+            chosenPlayer = p;
+            break;
+          }
+        }
+        // Tier 2: 不限區域或符合共用規則的玩家
+        if (chosenPlayer === null) {
+          for (const p of playerOrder) {
+            if (isItemInPlayerZone(item, p, otherOwner === 'SKIP' ? 'ANY' : otherOwner) && bags[p] + item.slots <= 10) {
+              chosenPlayer = p;
+              break;
+            }
+          }
+        }
+        // Tier 3: 任何仍有空位的玩家（確保指定目標不漏拿）
+        if (chosenPlayer === null) {
+          for (const p of playerOrder) {
+            if (bags[p] + item.slots <= 10) {
+              chosenPlayer = p;
+              break;
+            }
+          }
+        }
+
+        if (chosenPlayer !== null) {
+          assignment[item.id] = chosenPlayer;
+          bags[chosenPlayer] += item.slots;
+          mandatoryAssignedCount++;
+        }
+      }
+
+      // 步驟 2：各玩家於自己負責區域內執行 0/1 背包最佳化
+      for (const p of playerOrder) {
+        const remCap = 10 - bags[p];
+        if (remCap <= 0) continue;
+
+        const eligible = activeItems.filter(item =>
+          assignment[item.id] === undefined &&
+          isItemInPlayerZone(item, p, otherOwner)
+        );
+        const picked = solveKnapsack(eligible, remCap);
+        for (const item of picked) {
+          assignment[item.id] = p;
+          bags[p] += item.slots;
+        }
+      }
+
+      // 步驟 3：若啟用跨區補位，剩餘空位再跨區以 0/1 背包補滿
+      let inZoneCount = Object.keys(assignment).length;
+      if (allowOverflow) {
+        for (const p of playerOrder) {
+          const remCap = 10 - bags[p];
+          if (remCap <= 0) continue;
+
+          const remaining = activeItems.filter(item => {
+            if (assignment[item.id] !== undefined) return false;
+            if (getItemZoneGroup(item.location) === 'OTHER' && otherOwner === 'SKIP') return false;
+            return true;
+          });
+          const picked = solveKnapsack(remaining, remCap);
+          for (const item of picked) {
+            assignment[item.id] = p;
+            bags[p] += item.slots;
+          }
+        }
+      }
+
+      // 計算此排列組合的總價值
+      let totalValue = 0;
+      for (const item of activeItems) {
+        if (assignment[item.id] !== undefined) {
+          totalValue += (parseInt(item.price, 10) || 0);
+        }
+      }
+
+      const isBetter = !bestSolution ||
+        mandatoryAssignedCount > bestSolution.mandatoryAssignedCount ||
+        (mandatoryAssignedCount === bestSolution.mandatoryAssignedCount && totalValue > bestSolution.totalValue) ||
+        (mandatoryAssignedCount === bestSolution.mandatoryAssignedCount && totalValue === bestSolution.totalValue && inZoneCount > bestSolution.inZoneCount);
+
+      if (isBetter) {
+        bestSolution = { assignment, mandatoryAssignedCount, totalValue, inZoneCount };
       }
     }
+  }
+
+  // 套用最佳結果
+  state.items.forEach(i => {
+    i.assignedTo = (bestSolution && bestSolution.assignment[i.id] !== undefined) ? bestSolution.assignment[i.id] : null;
+    i.routeOrder = 0;
   });
 
   saveState();
   updateUI();
+  closeAutoAssignModal();
 }
 
 function resetMission() {
-  if (confirm('確定要清空本次任務的所有偵查與分配資料嗎？\n\n注意：這不會影響「主要目標保留清單」與你的「隊友名稱」。')) {
+  if (confirm('確定要清空本次任務的所有偵查與分配資料嗎？\n\n注意：這不會影響「主要目標保留清單」、「隊友名稱」與「負責區域設定」。')) {
     state.items.forEach(item => {
       item.isTarget = false;
       item.price = '';
@@ -1422,6 +1802,7 @@ function renderPlayersCards() {
     const slots = calculatePlayerSlots(i);
     const value = calculatePlayerValue(i);
     const percent = Math.min(100, (slots / 10) * 100);
+    const curZone = state.playerZones[i] || 'ALL';
 
     let statusClass = '';
     let badgeClass = '';
@@ -1453,6 +1834,15 @@ function renderPlayersCards() {
       <div class="player-stats">
         <span>分配價值: <strong>$${value.toLocaleString()}</strong></span>
         <span>剩餘: ${Math.max(0, 10 - slots)} 格</span>
+      </div>
+      <div class="player-zone-row">
+        <span>📍 負責區域:</span>
+        <select class="zone-select-sm" onchange="updatePlayerZone(${i}, this.value)" title="自動分配時優先指派此區域的物品">
+          <option value="1F_LG" ${curZone === '1F_LG' ? 'selected' : ''}>1F + LG</option>
+          <option value="2F_GAL" ${curZone === '2F_GAL' ? 'selected' : ''}>2F + 畫廊</option>
+          <option value="OTHER" ${curZone === 'OTHER' ? 'selected' : ''}>金庫 + 卸貨區</option>
+          <option value="ALL" ${curZone === 'ALL' ? 'selected' : ''}>不限 (全區)</option>
+        </select>
       </div>
     `;
     container.appendChild(card);
@@ -1662,12 +2052,14 @@ function renderRouteView() {
 
     const totalSlots = calculatePlayerSlots(p);
     const totalVal = calculatePlayerValue(p);
+    const zoneLabel = ZONE_LABELS[state.playerZones[p] || 'ALL'] || '不限';
 
     card.innerHTML = `
       <h3>
-        <span style="display:flex; align-items:center; gap:6px;">
+        <span style="display:flex; align-items:center; gap:6px; flex-wrap: wrap;">
           <div style="width:12px; height:12px; border-radius:50%; background:${PLAYER_COLORS[p]};"></div>
           👤 ${state.playerNames[p]}
+          <span class="zone-pill">${zoneLabel}</span>
         </span>
         <span style="font-size: 0.8rem; font-weight: normal; color: ${totalSlots > 10 ? 'var(--accent-red)' : 'var(--accent-cyan)'};">
           ${totalSlots} / 10 格 ($${totalVal.toLocaleString()})
@@ -1800,6 +2192,7 @@ function generateShareUrl() {
   const payload = {
     c: state.playerCount,
     n: state.playerNames.slice(0, state.playerCount),
+    z: state.playerZones.slice(0, state.playerCount),
     items: state.items
       .filter(i => (parseInt(i.price, 10) || 0) > 0 || i.isTarget || i.assignedTo !== null)
       .map(i => ({
@@ -1829,9 +2222,10 @@ function generateTextSummary() {
     const assigned = state.items.filter(i => i.assignedTo === p);
     const slots = calculatePlayerSlots(p);
     const val = calculatePlayerValue(p);
+    const zoneLabel = ZONE_LABELS[state.playerZones[p] || 'ALL'] || '不限';
     totalTeamVal += val;
 
-    text += `\n👤 **${state.playerNames[p]}** (${slots}/10格, 預估 **$${val.toLocaleString()}**):\n`;
+    text += `\n👤 **${state.playerNames[p]}** [${zoneLabel}] (${slots}/10格, 預估 **$${val.toLocaleString()}**):\n`;
     if (assigned.length === 0) {
       text += `  - (無分配)\n`;
     } else {
@@ -1893,7 +2287,7 @@ function copyShareText() {
   const summary = document.getElementById('shareTextSummary');
   summary.select();
   navigator.clipboard.writeText(summary.value).then(() => {
-    alert('✅ 已複製文字速報！\n可直接貼到 Discord 或 LINE 群組中查看，排版會自動套用加粗效果喔。');
+    alert('✅ 已複製文字速報！\n可直接貼到 Discord 或 LINE 群組中查看，排版會自動套用加粗效果。');
   }).catch(() => {
     document.execCommand('copy');
     alert('✅ 已複製文字速報！');
@@ -1912,6 +2306,11 @@ function checkUrlHashForSharedData() {
       if (data.n && Array.isArray(data.n)) {
         data.n.forEach((name, i) => {
           if (state.playerNames[i]) state.playerNames[i] = name;
+        });
+      }
+      if (data.z && Array.isArray(data.z)) {
+        data.z.forEach((zone, i) => {
+          if (state.playerZones[i]) state.playerZones[i] = zone;
         });
       }
 
@@ -2183,7 +2582,7 @@ canvas.addEventListener('mouseleave', endAction);
 
 canvas.addEventListener('touchstart', (e) => { 
   if (isMapLocked) return;
-  if (drawTool !== 'pan') e.preventDefault(); 
+  e.preventDefault(); 
   startAction(e); 
 }, {passive: false});
 
